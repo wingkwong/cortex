@@ -22,6 +22,7 @@ import shutil
 import yaml
 import urllib.parse
 import base64
+import inspect
 
 import dill
 import requests
@@ -53,25 +54,17 @@ class Client(object):
         pathlib.Path(self.workspace).mkdir(parents=True, exist_ok=True)
 
     def deploy(
-        self,
-        deployment_name,
-        api_name,
-        model_path,
-        pre_inference=None,
-        post_inference=None,
-        model_format=None,
-        tf_serving_key=None,
+        self, deployment_name, api_name, predictor, model_path=None, tf_serving_key=None, config={}
     ):
         """Deploy an API
 
         Args:
             deployment_name (string): deployment name
             api_name (string): API name
-            model_path (string): S3 path to an exported model
-            model_format (string): model format, must be "tensorflow" or "onnx"
-            pre_inference (function, optional): function used to prepare requests for model input
-            post_inference (function, optional): function used to prepare model output for response
-            tf_serving_key (string, optional): name of the signature def to use for prediction (required if your model has more than one signature def)
+            predictor (class): class definition implementing the Cortex Predictor interface based on your model format
+            model_path (string): S3 path to model (required for TensorFlowPredictor and ONNXPredictor)
+            tf_serving_key (string, optional): name of the signature def to use for prediction (required for TensorFlowPredictor if your model has more than one signature def)
+            config (dict): dictionary passed to the constructor of a Predictor
 
         Returns:
             string: url to the deployed API
@@ -83,34 +76,47 @@ class Client(object):
 
         api_config = {"kind": "api", "name": api_name}
 
-        if model_format != "tensorflow" and model_format != "onnx":
-            raise Exception("invalid model_format specified, please specify tensorflow or onnx")
+        if not inspect.isclass(predictor):
+            raise Exception(
+                "predictor should be a class definition implementing one of the following Cortex Predictor interfaces: PythonPredictor, TensorFlowPredictor, ONNXPredictor"
+            )
+
+        class_name = predictor.__name__
+
+        if (
+            class_name != "PythonPredictor"
+            and class_name != "TensorFlowPredictor"
+            and class_name != "ONNXPredictor"
+        ):
+            raise Exception(
+                "unexpected class name found: expected PythonPredictor, TensorFlowPredictor or ONNXPredictor but found "
+                + class_name
+            )
+
+        if class_name == "PythonPredictor":
+            model_format = "python"
+        elif class_name == "TensorFlowPredictor":
+            model_format = "tensorflow"
+        else:
+            model_format = "onnx"
 
         api_config[model_format] = {}
 
-        api_config[model_format]["model"] = model_path
+        if model_path is not None:
+            api_config[model_format]["model"] = model_path
 
         if model_format == "tensorflow" and tf_serving_key is not None:
             api_config[model_format]["serving_key"] = tf_serving_key
 
-        if pre_inference is not None or post_inference is not None:
-            reqs = subprocess.check_output([sys.executable, "-m", "pip", "freeze"])
+        reqs = subprocess.check_output([sys.executable, "-m", "pip", "freeze"])
 
-            with open(os.path.join(api_working_dir, "requirements.txt"), "w") as f:
-                f.writelines(reqs.decode())
+        with open(os.path.join(api_working_dir, "requirements.txt"), "w") as f:
+            f.writelines(reqs.decode())
 
-            handlers = {}
+        with open(os.path.join(api_working_dir, "predictor.pickle"), "wb") as f:
+            dill.dump(predictor, f, recurse=True)
 
-            if pre_inference is not None:
-                handlers["pre_inference"] = pre_inference
-
-            if post_inference is not None:
-                handlers["post_inference"] = post_inference
-
-            with open(os.path.join(api_working_dir, "request_handler.pickle"), "wb") as f:
-                dill.dump(handlers, f, recurse=True)
-
-            api_config[model_format]["request_handler"] = "request_handler.pickle"
+        api_config[model_format]["predictor"] = "predictor.pickle"
 
         deployment_config = [{"kind": "deployment", "name": deployment_name}, api_config]
 
