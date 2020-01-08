@@ -26,7 +26,6 @@ import (
 	intstr "k8s.io/apimachinery/pkg/util/intstr"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
-	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
 
 var deploymentTypeMeta = kmeta.TypeMeta{
@@ -62,24 +61,14 @@ func Deployment(spec *DeploymentSpec) *kapps.Deployment {
 
 	var maxSurge *intstr.IntOrString
 	if spec.MaxSurge != nil {
-		if intVal, ok := s.ParseInt32(*spec.MaxSurge); ok {
-			intOrStr := intstr.FromInt(int(intVal))
-			maxSurge = &intOrStr
-		} else {
-			intOrStr := intstr.FromString(*spec.MaxSurge)
-			maxSurge = &intOrStr
-		}
+		intStr := intstr.Parse(*spec.MaxSurge)
+		maxSurge = &intStr
 	}
 
 	var maxUnavailable *intstr.IntOrString
 	if spec.MaxUnavailable != nil {
-		if intVal, ok := s.ParseInt32(*spec.MaxUnavailable); ok {
-			intOrStr := intstr.FromInt(int(intVal))
-			maxUnavailable = &intOrStr
-		} else {
-			intOrStr := intstr.FromString(*spec.MaxUnavailable)
-			maxUnavailable = &intOrStr
-		}
+		intStr := intstr.Parse(*spec.MaxUnavailable)
+		maxUnavailable = &intStr
 	}
 
 	deployment := &kapps.Deployment{
