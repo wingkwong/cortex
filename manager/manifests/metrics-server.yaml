@@ -90,6 +90,7 @@ metadata:
   labels:
     k8s-app: metrics-server
 spec:
+  replicas: 0
   selector:
     matchLabels:
       k8s-app: metrics-server

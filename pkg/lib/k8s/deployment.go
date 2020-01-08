@@ -17,12 +17,14 @@ limitations under the License.
 package k8s
 
 import (
+	"strconv"
 	"time"
 
 	kapps "k8s.io/api/apps/v1"
 	kcore "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
+	intstr "k8s.io/apimachinery/pkg/util/intstr"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 )
@@ -33,13 +35,17 @@ var deploymentTypeMeta = kmeta.TypeMeta{
 }
 
 type DeploymentSpec struct {
-	Name        string
-	Namespace   string
-	Replicas    int32
-	PodSpec     PodSpec
-	Selector    map[string]string
-	Labels      map[string]string
-	Annotations map[string]string
+	Name                  string
+	Namespace             string
+	Replicas              int32
+	PodSpec               PodSpec
+	MaxSurgePercent       *int32 // Specify only one of MaxSurgePercent or MaxSurgeCount
+	MaxSurgeCount         *int32 // Specify only one of MaxSurgePercent or MaxSurgeCount
+	MaxUnavailablePercent *int32 // Specify only one of MaxUnavailablePercent or MaxUnavailableCount
+	MaxUnavailableCount   *int32 // Specify only one of MaxUnavailablePercent or MaxUnavailableCount
+	Selector              map[string]string
+	Labels                map[string]string
+	Annotations           map[string]string
 }
 
 func Deployment(spec *DeploymentSpec) *kapps.Deployment {
@@ -56,6 +62,24 @@ func Deployment(spec *DeploymentSpec) *kapps.Deployment {
 		spec.Selector = spec.PodSpec.Labels
 	}
 
+	var maxSurge *intstr.IntOrString
+	if spec.MaxSurgeCount != nil {
+		intStr := intstr.FromInt(int(*spec.MaxSurgeCount))
+		maxSurge = &intStr
+	} else if spec.MaxSurgePercent != nil {
+		intStr := intstr.FromString(strconv.FormatInt(int64(*spec.MaxSurgePercent), 10) + "%")
+		maxSurge = &intStr
+	}
+
+	var maxUnavailable *intstr.IntOrString
+	if spec.MaxUnavailableCount != nil {
+		intStr := intstr.FromInt(int(*spec.MaxUnavailableCount))
+		maxUnavailable = &intStr
+	} else if spec.MaxUnavailablePercent != nil {
+		intStr := intstr.FromString(strconv.FormatInt(int64(*spec.MaxUnavailablePercent), 10) + "%")
+		maxUnavailable = &intStr
+	}
+
 	deployment := &kapps.Deployment{
 		TypeMeta: deploymentTypeMeta,
 		ObjectMeta: kmeta.ObjectMeta{
@@ -66,6 +90,13 @@ func Deployment(spec *DeploymentSpec) *kapps.Deployment {
 		},
 		Spec: kapps.DeploymentSpec{
 			Replicas: &spec.Replicas,
+			Strategy: kapps.DeploymentStrategy{
+				Type: kapps.RollingUpdateDeploymentStrategyType,
+				RollingUpdate: &kapps.RollingUpdateDeployment{
+					MaxSurge:       maxSurge,
+					MaxUnavailable: maxUnavailable,
+				},
+			},
 			Template: kcore.PodTemplateSpec{
 				ObjectMeta: kmeta.ObjectMeta{
 					Name:        spec.PodSpec.Name,

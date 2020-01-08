@@ -331,8 +331,9 @@ func tfAPISpec(
 	downloadArgsBytes, _ := json.Marshal(downloadConfig)
 	downloadArgsStr := base64.URLEncoding.EncodeToString(downloadArgsBytes)
 	return k8s.Deployment(&k8s.DeploymentSpec{
-		Name:     internalAPIName(api.Name, ctx.App.Name),
-		Replicas: desiredReplicas,
+		Name:          internalAPIName(api.Name, ctx.App.Name),
+		Replicas:      desiredReplicas,
+		MaxSurgeCount: pointer.Int32(0),
 		Labels: map[string]string{
 			"appName":      ctx.App.Name,
 			"workloadType": workloadTypeAPI,
@@ -525,8 +526,9 @@ func pythonAPISpec(
 	}
 
 	return k8s.Deployment(&k8s.DeploymentSpec{
-		Name:     internalAPIName(api.Name, ctx.App.Name),
-		Replicas: desiredReplicas,
+		Name:          internalAPIName(api.Name, ctx.App.Name),
+		Replicas:      desiredReplicas,
+		MaxSurgeCount: pointer.Int32(0),
 		Labels: map[string]string{
 			"appName":      ctx.App.Name,
 			"workloadType": workloadTypeAPI,
@@ -687,8 +689,9 @@ func onnxAPISpec(
 	downloadArgsBytes, _ := json.Marshal(downloadConfig)
 	downloadArgsStr := base64.URLEncoding.EncodeToString(downloadArgsBytes)
 	return k8s.Deployment(&k8s.DeploymentSpec{
-		Name:     internalAPIName(api.Name, ctx.App.Name),
-		Replicas: desiredReplicas,
+		Name:          internalAPIName(api.Name, ctx.App.Name),
+		Replicas:      desiredReplicas,
+		MaxSurgeCount: pointer.Int32(0),
 		Labels: map[string]string{
 			"appName":      ctx.App.Name,
 			"workloadType": workloadTypeAPI,
