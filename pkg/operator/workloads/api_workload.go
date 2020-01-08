@@ -838,6 +838,25 @@ func doesAPIComputeNeedsUpdating(api *context.API, k8sDeployment *kapps.Deployme
 		return true
 	}
 
+	if k8sDeployment.Spec.Strategy.Type != kapps.RollingUpdateDeploymentStrategyType {
+		return true
+	}
+	if k8sDeployment.Spec.Strategy.RollingUpdate == nil {
+		return true
+	}
+	if k8sDeployment.Spec.Strategy.RollingUpdate.MaxSurge == nil {
+		return true
+	}
+	if k8sDeployment.Spec.Strategy.RollingUpdate.MaxUnavailable == nil {
+		return true
+	}
+	if k8sDeployment.Spec.Strategy.RollingUpdate.MaxSurge.String() != api.Compute.MaxSurge {
+		return true
+	}
+	if k8sDeployment.Spec.Strategy.RollingUpdate.MaxUnavailable.String() != api.Compute.MaxUnavailable {
+		return true
+	}
+
 	return false
 }
 
