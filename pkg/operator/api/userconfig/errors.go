@@ -41,6 +41,7 @@ const (
 	ErrInitReplicasGreaterThanMax
 	ErrInitReplicasLessThanMin
 	ErrInvalidSurgeOrUnavailable
+	ErrSurgeAndUnavailableBothZero
 	ErrSpecifyOneModelFormatFoundNone
 	ErrSpecifyOneModelFormatFoundMultiple
 	ErrImplDoesNotExist
@@ -67,6 +68,7 @@ var errorKinds = []string{
 	"err_init_replicas_greater_than_max",
 	"err_init_replicas_less_than_min",
 	"err_invalid_surge_or_unavailable",
+	"err_surge_and_unavailable_both_zero",
 	"err_specify_one_model_format_found_none",
 	"err_specify_one_model_format_found_multiple",
 	"err_impl_does_not_exist",
@@ -243,6 +245,13 @@ func ErrorInvalidSurgeOrUnavailable(val string) error {
 	return Error{
 		Kind:    ErrInvalidSurgeOrUnavailable,
 		message: fmt.Sprintf("%s is not a valid value - must be an integer percentage (e.g. 25%%, to denote a percentage of desired replicas) or a positive integer (e.g. 5, to denote a number of replicas)", s.UserStr(val)),
+	}
+}
+
+func ErrorSurgeAndUnavailableBothZero() error {
+	return Error{
+		Kind:    ErrSurgeAndUnavailableBothZero,
+		message: fmt.Sprintf("%s and %s cannot both be zero", MaxSurgeKey, MaxUnavailableKey),
 	}
 }
 

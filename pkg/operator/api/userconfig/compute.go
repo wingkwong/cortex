@@ -189,6 +189,10 @@ func (ac *APICompute) Validate() error {
 		return ErrorInitReplicasLessThanMin(ac.InitReplicas, ac.MinReplicas)
 	}
 
+	if (ac.MaxSurge == "0" || ac.MaxSurge == "0%") && (ac.MaxUnavailable == "0" || ac.MaxUnavailable == "0%") {
+		return ErrorSurgeAndUnavailableBothZero()
+	}
+
 	return nil
 }
 
