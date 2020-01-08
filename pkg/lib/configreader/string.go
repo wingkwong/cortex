@@ -42,6 +42,7 @@ type StringValidation struct {
 	AlphaNumericDashUnderscore           bool
 	DNS1035                              bool
 	DNS1123                              bool
+	CastInt                              bool
 	CastNumeric                          bool
 	CastScalar                           bool
 	AllowCortexResources                 bool
@@ -67,6 +68,11 @@ func String(inter interface{}, v *StringValidation) (string, error) {
 		} else if v.CastNumeric {
 			if !cast.IsNumericType(inter) {
 				return "", ErrorInvalidPrimitiveType(inter, PrimTypeString, PrimTypeInt, PrimTypeFloat)
+			}
+			casted = s.ObjFlatNoQuotes(inter)
+		} else if v.CastInt {
+			if !cast.IsIntType(inter) {
+				return "", ErrorInvalidPrimitiveType(inter, PrimTypeString, PrimTypeInt)
 			}
 			casted = s.ObjFlatNoQuotes(inter)
 		} else {

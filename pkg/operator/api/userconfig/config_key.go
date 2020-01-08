@@ -45,4 +45,6 @@ const (
 	CPUKey                  = "cpu"
 	GPUKey                  = "gpu"
 	MemKey                  = "mem"
+	MaxSurgeKey             = "max_surge"
+	MaxUnavailableKey       = "max_unavailable"
 )

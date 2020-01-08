@@ -26,6 +26,7 @@ package userconfig
 import (
 	"bytes"
 	"fmt"
+	"regexp"
 	"strings"
 
 	kresource "k8s.io/apimachinery/pkg/api/resource"
@@ -45,6 +46,8 @@ type APICompute struct {
 	CPU                  k8s.Quantity  `json:"cpu" yaml:"cpu"`
 	Mem                  *k8s.Quantity `json:"mem" yaml:"mem"`
 	GPU                  int64         `json:"gpu" yaml:"gpu"`
+	MaxSurge             string        `json:"max_surge" yaml:"max_surge"`
+	MaxUnavailable       string        `json:"max_unavailable" yaml:"max_unavailable"`
 }
 
 var apiComputeFieldValidation = &cr.StructFieldValidation{
@@ -105,8 +108,52 @@ var apiComputeFieldValidation = &cr.StructFieldValidation{
 					GreaterThanOrEqualTo: pointer.Int64(0),
 				},
 			},
+			{
+				StructField: "MaxSurge",
+				StringValidation: &cr.StringValidation{
+					Default:   "25%",
+					CastInt:   true,
+					Validator: surgeUnavailableValidator,
+				},
+			},
+			{
+				StructField: "MaxUnavailable",
+				StringValidation: &cr.StringValidation{
+					Default:   "25%",
+					CastInt:   true,
+					Validator: surgeUnavailableValidator,
+				},
+			},
 		},
 	},
+}
+
+var _surgeUnavailableRegex = regexp.MustCompile(`^[0-9]+%?$`)
+
+func surgeUnavailableValidator(str string) (string, error) {
+	if !_surgeUnavailableRegex.MatchString(str) {
+		return "", ErrorInvalidSurgeOrUnavailable(str)
+	}
+
+	if strings.HasSuffix(str, "%") {
+		parsed, ok := s.ParseInt32(strings.TrimSuffix(str, "%"))
+		if !ok {
+			return "", ErrorInvalidSurgeOrUnavailable(str)
+		}
+		if parsed < 0 || parsed > 100 {
+			return "", ErrorInvalidSurgeOrUnavailable(str)
+		}
+	} else {
+		parsed, ok := s.ParseInt32(str)
+		if !ok {
+			return "", ErrorInvalidSurgeOrUnavailable(str)
+		}
+		if parsed < 0 {
+			return "", ErrorInvalidSurgeOrUnavailable(str)
+		}
+	}
+
+	return str, nil
 }
 
 func (ac *APICompute) UserConfigStr() string {
@@ -124,6 +171,8 @@ func (ac *APICompute) UserConfigStr() string {
 	if ac.Mem != nil {
 		sb.WriteString(fmt.Sprintf("%s: %s\n", MemKey, ac.Mem.UserString))
 	}
+	sb.WriteString(fmt.Sprintf("%s: %s\n", MaxSurgeKey, ac.MaxSurge))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", MaxUnavailableKey, ac.MaxUnavailable))
 	return sb.String()
 }
 
@@ -152,6 +201,8 @@ func (ac *APICompute) ID() string {
 	buf.WriteString(ac.CPU.ID())
 	buf.WriteString(k8s.QuantityPtrID(ac.Mem))
 	buf.WriteString(s.Int64(ac.GPU))
+	buf.WriteString(ac.MaxSurge)
+	buf.WriteString(ac.MaxUnavailable)
 	return hash.Bytes(buf.Bytes())
 }
 

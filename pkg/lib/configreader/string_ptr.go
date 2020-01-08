@@ -36,8 +36,9 @@ type StringPtrValidation struct {
 	AlphaNumericDashUnderscore    bool
 	DNS1035                       bool
 	DNS1123                       bool
-	CastScalar                    bool
+	CastInt                       bool
 	CastNumeric                   bool
+	CastScalar                    bool
 	AllowCortexResources          bool
 	RequireCortexResources        bool
 	Validator                     func(string) (string, error)
@@ -54,6 +55,7 @@ func makeStringValValidation(v *StringPtrValidation) *StringValidation {
 		DNS1123:                       v.DNS1123,
 		CastScalar:                    v.CastScalar,
 		CastNumeric:                   v.CastNumeric,
+		CastInt:                       v.CastInt,
 		AllowCortexResources:          v.AllowCortexResources,
 		RequireCortexResources:        v.RequireCortexResources,
 	}
@@ -73,6 +75,11 @@ func StringPtr(inter interface{}, v *StringPtrValidation) (*string, error) {
 		} else if v.CastNumeric {
 			if !cast.IsNumericType(inter) {
 				return nil, ErrorInvalidPrimitiveType(inter, PrimTypeString, PrimTypeInt, PrimTypeFloat)
+			}
+			casted = s.ObjFlatNoQuotes(inter)
+		} else if v.CastInt {
+			if !cast.IsIntType(inter) {
+				return nil, ErrorInvalidPrimitiveType(inter, PrimTypeString, PrimTypeInt)
 			}
 			casted = s.ObjFlatNoQuotes(inter)
 		} else {

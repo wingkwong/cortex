@@ -40,6 +40,7 @@ const (
 	ErrMinReplicasGreaterThanMax
 	ErrInitReplicasGreaterThanMax
 	ErrInitReplicasLessThanMin
+	ErrInvalidSurgeOrUnavailable
 	ErrSpecifyOneModelFormatFoundNone
 	ErrSpecifyOneModelFormatFoundMultiple
 	ErrImplDoesNotExist
@@ -65,6 +66,7 @@ var errorKinds = []string{
 	"err_min_replicas_greater_than_max",
 	"err_init_replicas_greater_than_max",
 	"err_init_replicas_less_than_min",
+	"err_invalid_surge_or_unavailable",
 	"err_specify_one_model_format_found_none",
 	"err_specify_one_model_format_found_multiple",
 	"err_impl_does_not_exist",
@@ -234,6 +236,13 @@ func ErrorInitReplicasLessThanMin(init int32, min int32) error {
 	return Error{
 		Kind:    ErrInitReplicasLessThanMin,
 		message: fmt.Sprintf("%s cannot be less than %s (%d < %d)", InitReplicasKey, MinReplicasKey, init, min),
+	}
+}
+
+func ErrorInvalidSurgeOrUnavailable(val string) error {
+	return Error{
+		Kind:    ErrInvalidSurgeOrUnavailable,
+		message: fmt.Sprintf("%s is not a valid value - must be an integer percentage (e.g. 25%%, to denote a percentage of desired replicas) or a positive integer (e.g. 5, to denote a number of replicas)", s.UserStr(val)),
 	}
 }
 

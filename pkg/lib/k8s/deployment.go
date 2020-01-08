@@ -17,7 +17,6 @@ limitations under the License.
 package k8s
 
 import (
-	"strconv"
 	"time"
 
 	kapps "k8s.io/api/apps/v1"
@@ -27,6 +26,7 @@ import (
 	intstr "k8s.io/apimachinery/pkg/util/intstr"
 
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
+	s "github.com/cortexlabs/cortex/pkg/lib/strings"
 )
 
 var deploymentTypeMeta = kmeta.TypeMeta{
@@ -35,17 +35,15 @@ var deploymentTypeMeta = kmeta.TypeMeta{
 }
 
 type DeploymentSpec struct {
-	Name                  string
-	Namespace             string
-	Replicas              int32
-	PodSpec               PodSpec
-	MaxSurgePercent       *int32 // Specify only one of MaxSurgePercent or MaxSurgeCount
-	MaxSurgeCount         *int32 // Specify only one of MaxSurgePercent or MaxSurgeCount
-	MaxUnavailablePercent *int32 // Specify only one of MaxUnavailablePercent or MaxUnavailableCount
-	MaxUnavailableCount   *int32 // Specify only one of MaxUnavailablePercent or MaxUnavailableCount
-	Selector              map[string]string
-	Labels                map[string]string
-	Annotations           map[string]string
+	Name           string
+	Namespace      string
+	Replicas       int32
+	PodSpec        PodSpec
+	MaxSurge       *string // Can be a percentage (e.g. 10%) or an absolute number (e.g. 2)
+	MaxUnavailable *string // Can be a percentage (e.g. 10%) or an absolute number (e.g. 2)
+	Selector       map[string]string
+	Labels         map[string]string
+	Annotations    map[string]string
 }
 
 func Deployment(spec *DeploymentSpec) *kapps.Deployment {
@@ -63,21 +61,25 @@ func Deployment(spec *DeploymentSpec) *kapps.Deployment {
 	}
 
 	var maxSurge *intstr.IntOrString
-	if spec.MaxSurgeCount != nil {
-		intStr := intstr.FromInt(int(*spec.MaxSurgeCount))
-		maxSurge = &intStr
-	} else if spec.MaxSurgePercent != nil {
-		intStr := intstr.FromString(strconv.FormatInt(int64(*spec.MaxSurgePercent), 10) + "%")
-		maxSurge = &intStr
+	if spec.MaxSurge != nil {
+		if intVal, ok := s.ParseInt32(*spec.MaxSurge); ok {
+			intOrStr := intstr.FromInt(int(intVal))
+			maxSurge = &intOrStr
+		} else {
+			intOrStr := intstr.FromString(*spec.MaxSurge)
+			maxSurge = &intOrStr
+		}
 	}
 
 	var maxUnavailable *intstr.IntOrString
-	if spec.MaxUnavailableCount != nil {
-		intStr := intstr.FromInt(int(*spec.MaxUnavailableCount))
-		maxUnavailable = &intStr
-	} else if spec.MaxUnavailablePercent != nil {
-		intStr := intstr.FromString(strconv.FormatInt(int64(*spec.MaxUnavailablePercent), 10) + "%")
-		maxUnavailable = &intStr
+	if spec.MaxUnavailable != nil {
+		if intVal, ok := s.ParseInt32(*spec.MaxUnavailable); ok {
+			intOrStr := intstr.FromInt(int(intVal))
+			maxUnavailable = &intOrStr
+		} else {
+			intOrStr := intstr.FromString(*spec.MaxUnavailable)
+			maxUnavailable = &intOrStr
+		}
 	}
 
 	deployment := &kapps.Deployment{
