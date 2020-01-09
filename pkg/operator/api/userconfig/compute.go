@@ -26,7 +26,6 @@ package userconfig
 import (
 	"bytes"
 	"fmt"
-	"regexp"
 	"strings"
 
 	kresource "k8s.io/apimachinery/pkg/api/resource"
@@ -128,13 +127,7 @@ var apiComputeFieldValidation = &cr.StructFieldValidation{
 	},
 }
 
-var _surgeUnavailableRegex = regexp.MustCompile(`^[0-9]+%?$`)
-
 func surgeOrUnavailableValidator(str string) (string, error) {
-	if !_surgeUnavailableRegex.MatchString(str) {
-		return "", ErrorInvalidSurgeOrUnavailable(str)
-	}
-
 	if strings.HasSuffix(str, "%") {
 		parsed, ok := s.ParseInt32(strings.TrimSuffix(str, "%"))
 		if !ok {
