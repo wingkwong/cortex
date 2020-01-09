@@ -113,7 +113,7 @@ var apiComputeFieldValidation = &cr.StructFieldValidation{
 				StringValidation: &cr.StringValidation{
 					Default:   "25%",
 					CastInt:   true,
-					Validator: surgeUnavailableValidator,
+					Validator: surgeOrUnavailableValidator,
 				},
 			},
 			{
@@ -121,7 +121,7 @@ var apiComputeFieldValidation = &cr.StructFieldValidation{
 				StringValidation: &cr.StringValidation{
 					Default:   "25%",
 					CastInt:   true,
-					Validator: surgeUnavailableValidator,
+					Validator: surgeOrUnavailableValidator,
 				},
 			},
 		},
@@ -130,7 +130,7 @@ var apiComputeFieldValidation = &cr.StructFieldValidation{
 
 var _surgeUnavailableRegex = regexp.MustCompile(`^[0-9]+%?$`)
 
-func surgeUnavailableValidator(str string) (string, error) {
+func surgeOrUnavailableValidator(str string) (string, error) {
 	if !_surgeUnavailableRegex.MatchString(str) {
 		return "", ErrorInvalidSurgeOrUnavailable(str)
 	}
