@@ -30,7 +30,7 @@ import (
 )
 
 const (
-	_cronInterval      = 5 * time.Second
+	_cronInterval      = 5 * time.Minute
 	_telemetryInterval = 1 * time.Hour
 )
 
