@@ -54,6 +54,8 @@ type Config struct {
 	AvailabilityZones      []string    `json:"availability_zones" yaml:"availability_zones"`
 	Bucket                 *string     `json:"bucket" yaml:"bucket"`
 	LogGroup               string      `json:"log_group" yaml:"log_group"`
+	PrivateNetworking      bool        `json:"private_networking" yaml:"private_networking"`
+	NATType                NATType     `json:"nat_type" yaml:"nat_type"`
 	Telemetry              bool        `json:"telemetry" yaml:"telemetry"`
 	ImagePythonServe       string      `json:"image_python_serve" yaml:"image_python_serve"`
 	ImagePythonServeGPU    string      `json:"image_python_serve_gpu" yaml:"image_python_serve_gpu"`
@@ -220,6 +222,22 @@ var UserValidation = &cr.StructValidation{
 				MaxLength: 63,
 			},
 			DefaultField: "ClusterName",
+		},
+		{
+			StructField: "PrivateNetworking",
+			BoolValidation: &cr.BoolValidation{
+				Default: true,
+			},
+		},
+		{
+			StructField: "NATType",
+			StringValidation: &cr.StringValidation{
+				AllowedValues: NATTypeStrings(),
+				Default:       OneNAT.String(),
+			},
+			Parser: func(str string) (interface{}, error) {
+				return NATTypeFromString(str), nil
+			},
 		},
 		{
 			StructField: "ImagePythonServe",
@@ -419,6 +437,8 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 	if err := awsClient.VerifyInstanceQuota(*cc.InstanceType); err != nil {
 		return errors.Wrap(err, InstanceTypeKey)
 	}
+
+	// TODO can't do private networking and no nat
 
 	if len(cc.AvailabilityZones) > 0 {
 		zones, err := awsClient.GetAvailabilityZones()
@@ -908,6 +928,8 @@ func (cc *Config) UserTable() table.KeyValuePairs {
 		items.Add(OnDemandBackupUserKey, s.YesNo(*cc.SpotConfig.OnDemandBackup))
 	}
 	items.Add(LogGroupUserKey, cc.LogGroup)
+	items.Add(PrivateNetworkingUserKey, cc.PrivateNetworking)
+	items.Add(NATTypeUserKey, cc.NATType)
 	items.Add(TelemetryUserKey, cc.Telemetry)
 	items.Add(ImagePythonServeUserKey, cc.ImagePythonServe)
 	items.Add(ImagePythonServeGPUUserKey, cc.ImagePythonServeGPU)

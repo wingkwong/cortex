@@ -430,6 +430,14 @@ func clusterConfigConfirmaionStr(clusterConfig clusterconfig.Config, awsCreds AW
 		}
 	}
 
+	if clusterConfig.PrivateNetworking != defaultConfig.PrivateNetworking {
+		items.Add(clusterconfig.PrivateNetworkingUserKey, clusterConfig.PrivateNetworking)
+	}
+
+	if clusterConfig.NATType != defaultConfig.NATType {
+		items.Add(clusterconfig.NATTypeUserKey, clusterConfig.NATType)
+	}
+
 	if clusterConfig.Telemetry != defaultConfig.Telemetry {
 		items.Add(clusterconfig.TelemetryUserKey, clusterConfig.Telemetry)
 	}
