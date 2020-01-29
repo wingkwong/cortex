@@ -303,7 +303,27 @@ func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deplo
 							"--cache-dir=" + _specCacheDir,
 							"--project-dir=" + path.Join(_emptyDirMountPath, "project"),
 						},
-						Env:            getEnvVars(api),
+						Env: append(getEnvVars(api), kcore.EnvVar{
+							Name:  "PORT",
+							Value: _defaultPortStr,
+						},
+							kcore.EnvVar{
+								Name:  "PYTHONUNBUFFERED",
+								Value: "TRUE",
+							},
+							kcore.EnvVar{
+								Name:  "SPEC",
+								Value: aws.S3Path(*config.Cluster.Bucket, api.Key),
+							},
+							kcore.EnvVar{
+								Name:  "CACHE_DIR",
+								Value: _specCacheDir,
+							},
+							kcore.EnvVar{
+								Name:  "PROJECT_DIR",
+								Value: path.Join(_emptyDirMountPath, "project"),
+							},
+						),
 						EnvFrom:        _baseEnvVars,
 						VolumeMounts:   _defaultVolumeMounts,
 						ReadinessProbe: _apiReadinessProbe,

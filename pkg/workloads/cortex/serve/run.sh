@@ -22,4 +22,6 @@ fi
 
 cd /mnt/project
 
-/usr/bin/python3.6 /src/cortex/serve/serve.py "$@"
+
+
+gunicorn -b 0.0.0.0:$PORT --access-logfile=- --pythonpath=$PYTHONPATH --statsd-host=$HOST_IP:8125 --chdir /mnt/project --log-level debug cortex.serve.wsgi:app
