@@ -242,7 +242,7 @@ func ErrorS3RegionDiffersFromCluster(bucketName string, bucketRegion string, clu
 func ErrorNATRequiredWithPrivateWorkerNetworking() error {
 	return errors.WithStack(Error{
 		Kind:    ErrNATRequiredWithPrivateWorkerNetworking,
-		message: fmt.Sprintf("a nat gateway is required with private worker networking; either set %s to %s or %s, or set %s to %s", NATTypeUserKey, s.UserStr(OneNAT), s.UserStr(HighlyAvailableNAT), WorkerNetworkingKey, s.UserStr(PublicWorkerNetworking)),
+		message: fmt.Sprintf("a nat gateway is required with private worker networking; either set %s to %s or %s, or set %s to %s", NATGatewayUserKey, s.UserStr(OneNAT), s.UserStr(HighlyAvailableNAT), WorkerNetworkingKey, s.UserStr(PublicWorkerNetworking)),
 	})
 }
 

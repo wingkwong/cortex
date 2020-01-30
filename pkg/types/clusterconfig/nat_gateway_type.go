@@ -16,65 +16,65 @@ limitations under the License.
 
 package clusterconfig
 
-type NATType int
+type NATGateway int
 
 const (
-	UnknownNATType NATType = iota
+	UnknownNATGateway NATGateway = iota
 	NoNAT
 	OneNAT
 	HighlyAvailableNAT
 )
 
-var _natTypes = []string{
+var _natGateways = []string{
 	"unknown",
 	"disable",
 	"single",
 	"highly_available",
 }
 
-func NATTypeFromString(s string) NATType {
-	for i := 0; i < len(_natTypes); i++ {
-		if s == _natTypes[i] {
-			return NATType(i)
+func NATGatewayFromString(s string) NATGateway {
+	for i := 0; i < len(_natGateways); i++ {
+		if s == _natGateways[i] {
+			return NATGateway(i)
 		}
 	}
-	return UnknownNATType
+	return UnknownNATGateway
 }
 
-func NATTypeStrings() []string {
-	return _natTypes[1:]
+func NATGatewayStrings() []string {
+	return _natGateways[1:]
 }
 
-func (t NATType) String() string {
-	return _natTypes[t]
+func (t NATGateway) String() string {
+	return _natGateways[t]
 }
 
 // MarshalText satisfies TextMarshaler
-func (t NATType) MarshalText() ([]byte, error) {
+func (t NATGateway) MarshalText() ([]byte, error) {
 	return []byte(t.String()), nil
 }
 
 // UnmarshalText satisfies TextUnmarshaler
-func (t *NATType) UnmarshalText(text []byte) error {
+func (t *NATGateway) UnmarshalText(text []byte) error {
 	enum := string(text)
-	for i := 0; i < len(_natTypes); i++ {
-		if enum == _natTypes[i] {
-			*t = NATType(i)
+	for i := 0; i < len(_natGateways); i++ {
+		if enum == _natGateways[i] {
+			*t = NATGateway(i)
 			return nil
 		}
 	}
 
-	*t = UnknownNATType
+	*t = UnknownNATGateway
 	return nil
 }
 
 // UnmarshalBinary satisfies BinaryUnmarshaler
 // Needed for msgpack
-func (t *NATType) UnmarshalBinary(data []byte) error {
+func (t *NATGateway) UnmarshalBinary(data []byte) error {
 	return t.UnmarshalText(data)
 }
 
 // MarshalBinary satisfies BinaryMarshaler
-func (t NATType) MarshalBinary() ([]byte, error) {
+func (t NATGateway) MarshalBinary() ([]byte, error) {
 	return []byte(t.String()), nil
 }

@@ -24,7 +24,7 @@ availabilityZones: $CORTEX_AVAILABILITY_ZONES
 
 vpc:
   nat:
-    gateway: $CORTEX_NAT_TYPE
+    gateway: $CORTEX_NAT_GATEWAY
 
 cloudWatch:
   clusterLogging:

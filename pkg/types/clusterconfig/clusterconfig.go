@@ -55,7 +55,7 @@ type Config struct {
 	Bucket                 *string              `json:"bucket" yaml:"bucket"`
 	LogGroup               string               `json:"log_group" yaml:"log_group"`
 	WorkerNetworking       WorkerNetworkingType `json:"worker_networking" yaml:"worker_networking"`
-	NATType                NATType              `json:"nat_type" yaml:"nat_type"`
+	NATGateway             NATGateway           `json:"nat_gateway" yaml:"nat_gateway"`
 	Telemetry              bool                 `json:"telemetry" yaml:"telemetry"`
 	ImagePythonServe       string               `json:"image_python_serve" yaml:"image_python_serve"`
 	ImagePythonServeGPU    string               `json:"image_python_serve_gpu" yaml:"image_python_serve_gpu"`
@@ -234,13 +234,13 @@ var UserValidation = &cr.StructValidation{
 			},
 		},
 		{
-			StructField: "NATType",
+			StructField: "NATGateway",
 			StringValidation: &cr.StringValidation{
-				AllowedValues: NATTypeStrings(),
+				AllowedValues: NATGatewayStrings(),
 				Default:       OneNAT.String(),
 			},
 			Parser: func(str string) (interface{}, error) {
-				return NATTypeFromString(str), nil
+				return NATGatewayFromString(str), nil
 			},
 		},
 		{
@@ -442,7 +442,7 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 		return errors.Wrap(err, InstanceTypeKey)
 	}
 
-	if cc.NATType == NoNAT && cc.WorkerNetworking == PrivateWorkerNetworking {
+	if cc.NATGateway == NoNAT && cc.WorkerNetworking == PrivateWorkerNetworking {
 		return ErrorNATRequiredWithPrivateWorkerNetworking()
 	}
 
@@ -935,7 +935,7 @@ func (cc *Config) UserTable() table.KeyValuePairs {
 	}
 	items.Add(LogGroupUserKey, cc.LogGroup)
 	items.Add(WorkerNetworkingUserKey, cc.WorkerNetworking)
-	items.Add(NATTypeUserKey, cc.NATType)
+	items.Add(NATGatewayUserKey, cc.NATGateway)
 	items.Add(TelemetryUserKey, cc.Telemetry)
 	items.Add(ImagePythonServeUserKey, cc.ImagePythonServe)
 	items.Add(ImagePythonServeGPUUserKey, cc.ImagePythonServeGPU)

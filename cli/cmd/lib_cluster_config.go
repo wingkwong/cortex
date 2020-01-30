@@ -434,8 +434,8 @@ func clusterConfigConfirmaionStr(clusterConfig clusterconfig.Config, awsCreds AW
 		items.Add(clusterconfig.WorkerNetworkingUserKey, clusterConfig.WorkerNetworking)
 	}
 
-	if clusterConfig.NATType != defaultConfig.NATType {
-		items.Add(clusterconfig.NATTypeUserKey, clusterConfig.NATType)
+	if clusterConfig.NATGateway != defaultConfig.NATGateway {
+		items.Add(clusterconfig.NATGatewayUserKey, clusterConfig.NATGateway)
 	}
 
 	if clusterConfig.Telemetry != defaultConfig.Telemetry {
