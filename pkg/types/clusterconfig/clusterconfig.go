@@ -237,7 +237,7 @@ var UserValidation = &cr.StructValidation{
 			StructField: "NATGateway",
 			StringValidation: &cr.StringValidation{
 				AllowedValues: NATGatewayStrings(),
-				Default:       OneNAT.String(),
+				Default:       NoNAT.String(),
 			},
 			Parser: func(str string) (interface{}, error) {
 				return NATGatewayFromString(str), nil
