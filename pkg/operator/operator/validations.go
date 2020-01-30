@@ -25,6 +25,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/cast"
 	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
+	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
@@ -76,6 +77,10 @@ var _apiValidation = &cr.StructValidation{
 					},
 				},
 			},
+		},
+		{
+			StructField:      "Networking",
+			StructValidation: userconfig.NetworkingValidation,
 		},
 		_predictorValidation,
 		_computeFieldValidation,
@@ -308,6 +313,19 @@ func validateAPI(
 	virtualServices []kunstructured.Unstructured,
 	maxMem *kresource.Quantity,
 ) error {
+
+	if api.Networking.APIGateway && api.Networking.APIGatewayConfig == nil {
+		apiGateway, err := userconfig.DefaultAPIGatewayConfig()
+		if err != nil {
+			return err
+		}
+		api.Networking.APIGatewayConfig = apiGateway
+	}
+
+	if !api.Networking.APIGateway && api.Networking.APIGatewayConfig != nil {
+		err := ErrorAPIGatewayConfigNotApplicable(userconfig.APIGatewayConfigKey, userconfig.APIGatewayKey)
+		return errors.Wrap(err, api.Identify(), userconfig.NetworkingKey)
+	}
 
 	if api.Endpoint == nil {
 		api.Endpoint = pointer.String("/" + api.Name)
@@ -550,15 +568,16 @@ func validateAvailableCompute(compute *userconfig.Compute, maxMem *kresource.Qua
 	return nil
 }
 
+// TODO
 func validateEndpointCollisions(api *userconfig.API, virtualServices []kunstructured.Unstructured) error {
 	for _, virtualService := range virtualServices {
-		gateways, err := k8s.ExtractVirtualServiceGateways(&virtualService)
-		if err != nil {
-			return err
-		}
-		if !gateways.Has("apis-gateway") {
-			continue
-		}
+		// gateways, err := k8s.ExtractVirtualServiceGateways(&virtualService)
+		// if err != nil {
+		// 	return err
+		// }
+		// if !gateways.Has("apis-gateway") {
+		// 	continue
+		// }
 
 		endpoints, err := k8s.ExtractVirtualServiceEndpoints(&virtualService)
 		if err != nil {

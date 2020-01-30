@@ -14,67 +14,67 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package clusterconfig
+package userconfig
 
-type NATType int
+type AuthType int
 
 const (
-	UnknownNATType NATType = iota
-	NoNAT
-	OneNAT
-	HighlyAvailableNAT
+	UnknownAuthType AuthType = iota
+	NoAuthType
+	IAMAuthType
+	APIKeyAuthType
 )
 
-var _natTypes = []string{
+var _authTypes = []string{
 	"unknown",
-	"disable",
-	"single",
-	"highly_available",
+	"no_auth",
+	"iam",
+	"api_key",
 }
 
-func NATTypeFromString(s string) NATType {
-	for i := 0; i < len(_natTypes); i++ {
-		if s == _natTypes[i] {
-			return NATType(i)
+func AuthTypeFromString(s string) AuthType {
+	for i := 0; i < len(_authTypes); i++ {
+		if s == _authTypes[i] {
+			return AuthType(i)
 		}
 	}
-	return UnknownNATType
+	return UnknownAuthType
 }
 
-func NATTypeStrings() []string {
-	return _natTypes[1:]
+func AuthTypeStrings() []string {
+	return _authTypes[1:]
 }
 
-func (t NATType) String() string {
-	return _natTypes[t]
+func (t AuthType) String() string {
+	return _authTypes[t]
 }
 
 // MarshalText satisfies TextMarshaler
-func (t NATType) MarshalText() ([]byte, error) {
+func (t AuthType) MarshalText() ([]byte, error) {
 	return []byte(t.String()), nil
 }
 
 // UnmarshalText satisfies TextUnmarshaler
-func (t *NATType) UnmarshalText(text []byte) error {
+func (t *AuthType) UnmarshalText(text []byte) error {
 	enum := string(text)
-	for i := 0; i < len(_natTypes); i++ {
-		if enum == _natTypes[i] {
-			*t = NATType(i)
+	for i := 0; i < len(_authTypes); i++ {
+		if enum == _authTypes[i] {
+			*t = AuthType(i)
 			return nil
 		}
 	}
 
-	*t = UnknownNATType
+	*t = UnknownAuthType
 	return nil
 }
 
 // UnmarshalBinary satisfies BinaryUnmarshaler
 // Needed for msgpack
-func (t *NATType) UnmarshalBinary(data []byte) error {
+func (t *AuthType) UnmarshalBinary(data []byte) error {
 	return t.UnmarshalText(data)
 }
 
 // MarshalBinary satisfies BinaryMarshaler
-func (t NATType) MarshalBinary() ([]byte, error) {
+func (t AuthType) MarshalBinary() ([]byte, error) {
 	return []byte(t.String()), nil
 }

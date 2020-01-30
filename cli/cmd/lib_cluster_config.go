@@ -430,8 +430,8 @@ func clusterConfigConfirmaionStr(clusterConfig clusterconfig.Config, awsCreds AW
 		}
 	}
 
-	if clusterConfig.PrivateNetworking != defaultConfig.PrivateNetworking {
-		items.Add(clusterconfig.PrivateNetworkingUserKey, clusterConfig.PrivateNetworking)
+	if clusterConfig.WorkerNetworking != defaultConfig.WorkerNetworking {
+		items.Add(clusterconfig.WorkerNetworkingUserKey, clusterConfig.WorkerNetworking)
 	}
 
 	if clusterConfig.NATType != defaultConfig.NATType {

@@ -73,7 +73,7 @@ const (
 	InstancePoolsUserKey                       = "spot instance pools"
 	OnDemandBackupUserKey                      = "on demand backup"
 	LogGroupUserKey                            = "cloudwatch log group"
-	PrivateNetworkingUserKey                   = "private networking"
+	WorkerNetworkingUserKey                    = "worker networking"
 	NATTypeUserKey                             = "nat type"
 	TelemetryUserKey                           = "telemetry"
 	ImagePythonServeUserKey                    = "python serving image"

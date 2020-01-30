@@ -128,7 +128,7 @@ Note: it's ok if example training notebooks aren't upgraded, as long as the expo
 1. Find the latest [release](https://github.com/istio/istio/releases/) and check the [changelog](https://istio.io/about/notes/) and [option changes](https://istio.io/docs/reference/config/installation-options-changes/) (here are the [latest configuration options](https://istio.io/docs/reference/config/installation-options/))
 1. Update the version in all `images/istio-*` Dockerfiles
 1. Update the version in `images/manager/Dockerfile`
-1. Update `istio-values.yaml`, `apis.yaml`, and `operator.yaml` as necessary (make sure to maintain all Cortex environment variables)
+1. Update `istio-values.yaml`, and `operator.yaml` as necessary (make sure to maintain all Cortex environment variables)
 1. Update `setup_istio()` in `install.sh` as necessary
 
 ## Metrics server

@@ -42,4 +42,14 @@ const (
 	MemKey                  = "mem"
 	MaxSurgeKey             = "max_surge"
 	MaxUnavailableKey       = "max_unavailable"
+
+	// Networking
+	NetworkingKey             = "networking"
+	TimeoutKey                = "timeout"
+	LoadBalancerKey           = "load_balancer"
+	APIGatewayKey             = "api_gateway"
+	APIGatewayConfigKey       = "api_gateway_config"
+	AuthKey                   = "auth"
+	RequestsPerSecondLimitKey = "requests_per_second_limit"
+	BurstLimitKey             = "burst_limit"
 )

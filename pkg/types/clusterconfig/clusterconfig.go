@@ -54,7 +54,7 @@ type Config struct {
 	AvailabilityZones      []string    `json:"availability_zones" yaml:"availability_zones"`
 	Bucket                 *string     `json:"bucket" yaml:"bucket"`
 	LogGroup               string      `json:"log_group" yaml:"log_group"`
-	PrivateNetworking      bool        `json:"private_networking" yaml:"private_networking"`
+	WorkerNetworking       bool        `json:"worker_networking" yaml:"worker_networking"`
 	NATType                NATType     `json:"nat_type" yaml:"nat_type"`
 	Telemetry              bool        `json:"telemetry" yaml:"telemetry"`
 	ImagePythonServe       string      `json:"image_python_serve" yaml:"image_python_serve"`
@@ -224,9 +224,13 @@ var UserValidation = &cr.StructValidation{
 			DefaultField: "ClusterName",
 		},
 		{
-			StructField: "PrivateNetworking",
-			BoolValidation: &cr.BoolValidation{
-				Default: true,
+			StructField: "WorkerNetworking",
+			StringValidation: &cr.StringValidation{
+				AllowedValues: WorkerNetworkingTypeStrings(),
+				Default:       PublicWorkerNetworking.String(),
+			},
+			Parser: func(str string) (interface{}, error) {
+				return WorkerNetworkingTypeFromString(str), nil
 			},
 		},
 		{
@@ -928,7 +932,7 @@ func (cc *Config) UserTable() table.KeyValuePairs {
 		items.Add(OnDemandBackupUserKey, s.YesNo(*cc.SpotConfig.OnDemandBackup))
 	}
 	items.Add(LogGroupUserKey, cc.LogGroup)
-	items.Add(PrivateNetworkingUserKey, cc.PrivateNetworking)
+	items.Add(WorkerNetworkingUserKey, cc.WorkerNetworking)
 	items.Add(NATTypeUserKey, cc.NATType)
 	items.Add(TelemetryUserKey, cc.Telemetry)
 	items.Add(ImagePythonServeUserKey, cc.ImagePythonServe)

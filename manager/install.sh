@@ -145,7 +145,6 @@ function main() {
 
   echo -n "￮ configuring networking "
   setup_istio
-  envsubst < manifests/apis.yaml | kubectl apply -f - >/dev/null
   echo "✓"
 
   echo -n "￮ configuring autoscaling "
@@ -293,7 +292,6 @@ function validate_cortex() {
   echo -n "￮ waiting for load balancers "
 
   operator_load_balancer="waiting"
-  api_load_balancer="waiting"
   operator_endpoint_reachable="waiting"
   operator_pod_ready_cycles=0
   operator_endpoint=""
@@ -320,14 +318,6 @@ function validate_cortex() {
         continue
       fi
       operator_load_balancer="ready"
-    fi
-
-    if [ "$api_load_balancer" != "ready" ]; then
-      out=$(kubectl -n=istio-system get service ingressgateway-apis -o json | tr -d '[:space:]')
-      if [[ $out != *'"loadBalancer":{"ingress":[{"'* ]]; then
-        continue
-      fi
-      api_load_balancer="ready"
     fi
 
     if [ "$operator_endpoint" = "" ]; then

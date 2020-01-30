@@ -476,7 +476,7 @@ func serviceSpec(api *spec.API) *kcore.Service {
 func virtualServiceSpec(api *spec.API) *kunstructured.Unstructured {
 	return k8s.VirtualService(&k8s.VirtualServiceSpec{
 		Name:        k8sName(api.Name),
-		Gateways:    []string{"apis-gateway"},
+		Gateways:    []string{"operator-gateway"},
 		ServiceName: k8sName(api.Name),
 		ServicePort: _defaultPortInt32,
 		Path:        *api.Endpoint,

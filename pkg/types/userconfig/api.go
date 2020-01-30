@@ -19,18 +19,24 @@ package userconfig
 import (
 	"fmt"
 	"strings"
+	"time"
 
+	cr "github.com/cortexlabs/cortex/pkg/lib/configreader"
+	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
+	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
+	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
 	"github.com/cortexlabs/yaml"
 )
 
 type API struct {
-	Name      string     `json:"name" yaml:"name"`
-	Endpoint  *string    `json:"endpoint" yaml:"endpoint"`
-	Predictor *Predictor `json:"predictor" yaml:"predictor"`
-	Tracker   *Tracker   `json:"tracker" yaml:"tracker"`
-	Compute   *Compute   `json:"compute" yaml:"compute"`
+	Name       string      `json:"name" yaml:"name"`
+	Endpoint   *string     `json:"endpoint" yaml:"endpoint"`
+	Predictor  *Predictor  `json:"predictor" yaml:"predictor"`
+	Networking *Networking `json:"networking" yaml:"networking"`
+	Tracker    *Tracker    `json:"tracker" yaml:"tracker"`
+	Compute    *Compute    `json:"compute" yaml:"compute"`
 
 	Index    int    `json:"index" yaml:"-"`
 	FilePath string `json:"file_path" yaml:"-"`
@@ -61,6 +67,95 @@ type Compute struct {
 	GPU                  int64         `json:"gpu" yaml:"gpu"`
 	MaxSurge             string        `json:"max_surge" yaml:"max_surge"`
 	MaxUnavailable       string        `json:"max_unavailable" yaml:"max_unavailable"`
+}
+
+type Networking struct {
+	Timeout          time.Duration    `json:"timeout" yaml:"timeout"`
+	LoadBalancer     LoadBalancerType `json:"load_balancer" yaml:"load_balancer"`
+	APIGateway       bool             `json:"api_gateway" yaml:"api_gateway"`
+	APIGatewayConfig *APIGateway      `json:"api_gateway_config" yaml:"api_gateway_config"`
+}
+
+type APIGateway struct {
+	Auth                   AuthType `json:"auth" yaml:"auth"`
+	RequestsPerSecondLimit *int64   `json:"requests_per_second_limit" yaml:"requests_per_second_limit"` // https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-request-throttling.html
+	BurstLimit             *int64   `json:"burst_limit" yaml:"burst_limit"`                             // https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-request-throttling.html
+}
+
+var NetworkingValidation = &cr.StructValidation{
+	StructFieldValidations: []*cr.StructFieldValidation{
+		{
+			StructField: "Timeout",
+			StringValidation: &cr.StringValidation{
+				Default: "29s",
+			},
+			Parser: cr.DurationParser(&cr.QuantityValidation{
+				GreaterThan:       pointer.Duration(libtime.MustParseDuration("0s")),
+				LessThanOrEqualTo: pointer.Duration(libtime.MustParseDuration("29s")),
+			}),
+		},
+		{
+			StructField: "LoadBalancer",
+			StringValidation: &cr.StringValidation{
+				AllowedValues: LoadBalancerTypeStrings(),
+				Default:       SharedLoadBalancerType.String(),
+			},
+			Parser: func(str string) (interface{}, error) {
+				return LoadBalancerTypeFromString(str), nil
+			},
+		},
+		{
+			StructField: "APIGateway",
+			BoolValidation: &cr.BoolValidation{
+				Default: true,
+			},
+		},
+		{
+			StructField: "APIGatewayConfig",
+			StructValidation: &cr.StructValidation{
+				DefaultNil:             true,
+				StructFieldValidations: APIGatewayValidations,
+			},
+		},
+	},
+}
+
+var APIGatewayValidations = []*cr.StructFieldValidation{
+	{
+		StructField: "Auth",
+		StringValidation: &cr.StringValidation{
+			AllowedValues: AuthTypeStrings(),
+			Default:       NoAuthType.String(),
+		},
+		Parser: func(str string) (interface{}, error) {
+			return AuthTypeFromString(str), nil
+		},
+	},
+	{
+		StructField: "RequestsPerSecondLimit",
+		Int64PtrValidation: &cr.Int64PtrValidation{
+			GreaterThan: pointer.Int64(0),
+		},
+	},
+	{
+		StructField: "BurstLimit",
+		Int64PtrValidation: &cr.Int64PtrValidation{
+			GreaterThan: pointer.Int64(0),
+		},
+	},
+}
+
+func DefaultAPIGatewayConfig() (*APIGateway, error) {
+	apiGateway := &APIGateway{}
+	var emptyMap interface{} = map[interface{}]interface{}{}
+	errs := cr.Struct(apiGateway, emptyMap, &cr.StructValidation{
+		DefaultNil:             false,
+		StructFieldValidations: APIGatewayValidations,
+	})
+	if errors.HasError(errs) {
+		return nil, errors.FirstError(errs...)
+	}
+	return apiGateway, nil
 }
 
 func (api *API) Identify() string {

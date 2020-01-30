@@ -331,7 +331,7 @@ func IsAPIDeployed(apiName string) (bool, error) {
 }
 
 func APIsBaseURL() (string, error) {
-	service, err := config.K8sIstio.GetService("ingressgateway-apis")
+	service, err := config.K8sIstio.GetService("ingressgateway-operator")
 	if err != nil {
 		return "", err
 	}

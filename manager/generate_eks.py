@@ -23,7 +23,7 @@ def default_nodegroup(cluster_config):
     return {
         "ami": "auto",
         "iam": {"withAddonPolicies": {"autoScaler": True}},
-        "privateNetworking": cluster_config.get("private_networking", True),
+        "privateNetworking": cluster_config.get("worker_networking", "public") != "public",
         "kubeletExtraConfig": {
             "kubeReserved": {"cpu": "150m", "memory": "300Mi", "ephemeral-storage": "1Gi"},
             "kubeReservedCgroup": "/kube-reserved",

@@ -38,6 +38,7 @@ const (
 	ErrDuplicateEndpoint
 	ErrSpecifyAllOrNone
 	ErrOneOfPrerequisitesNotDefined
+	ErrConfigNotApplicable
 	ErrMinReplicasGreaterThanMax
 	ErrInitReplicasGreaterThanMax
 	ErrInitReplicasLessThanMin
@@ -65,6 +66,7 @@ var _errorKinds = []string{
 	"err_duplicate_endpoint",
 	"err_specify_all_or_none",
 	"err_one_of_prerequisites_not_defined",
+	"err_config_not_applicable",
 	"err_min_replicas_greater_than_max",
 	"err_init_replicas_greater_than_max",
 	"err_init_replicas_less_than_min",
@@ -205,6 +207,13 @@ func ErrorOneOfPrerequisitesNotDefined(argName string, prerequisite string, prer
 	return errors.WithStack(Error{
 		Kind:    ErrOneOfPrerequisitesNotDefined,
 		message: message,
+	})
+}
+
+func ErrorAPIGatewayConfigNotApplicable(invalidField string, indicatorField string) error {
+	return errors.WithStack(Error{
+		Kind:    ErrConfigNotApplicable,
+		message: fmt.Sprintf("%s cannot be defined when %s is set to false", invalidField, indicatorField),
 	})
 }
 
