@@ -46,6 +46,7 @@ const (
 	ErrInvalidAvailabilityZone
 	ErrDidNotMatchStrictS3Regex
 	ErrS3RegionDiffersFromCluster
+	ErrNATRequiredWithPrivateWorkerNetworking
 	ErrInvalidInstanceType
 )
 
@@ -68,6 +69,7 @@ var _errorKinds = []string{
 	"err_invalid_availability_zone",
 	"err_did_not_match_strict_s3_regex",
 	"err_s3_region_differs_from_cluster",
+	"err_nat_required_with_private_worker_networking",
 	"err_invalid_instance_type",
 }
 
@@ -234,6 +236,13 @@ func ErrorS3RegionDiffersFromCluster(bucketName string, bucketRegion string, clu
 	return errors.WithStack(Error{
 		Kind:    ErrS3RegionDiffersFromCluster,
 		message: fmt.Sprintf("the %s bucket is in %s, but your cluster is in %s; either change the region of your cluster to %s, use a bucket that is in %s, or remove your bucket configuration to allow cortex to make the bucket for you", bucketName, bucketRegion, clusterRegion, bucketRegion, clusterRegion),
+	})
+}
+
+func ErrorNATRequiredWithPrivateWorkerNetworking() error {
+	return errors.WithStack(Error{
+		Kind:    ErrNATRequiredWithPrivateWorkerNetworking,
+		message: fmt.Sprintf("a nat gateway is required with private worker networking; either set %s to %s or %s, or set %s to %s", NATTypeUserKey, s.UserStr(OneNAT), s.UserStr(HighlyAvailableNAT), WorkerNetworkingKey, s.UserStr(PublicWorkerNetworking)),
 	})
 }
 

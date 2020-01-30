@@ -43,39 +43,39 @@ var (
 )
 
 type Config struct {
-	InstanceType           *string     `json:"instance_type" yaml:"instance_type"`
-	MinInstances           *int64      `json:"min_instances" yaml:"min_instances"`
-	MaxInstances           *int64      `json:"max_instances" yaml:"max_instances"`
-	InstanceVolumeSize     int64       `json:"instance_volume_size" yaml:"instance_volume_size"`
-	Spot                   *bool       `json:"spot" yaml:"spot"`
-	SpotConfig             *SpotConfig `json:"spot_config" yaml:"spot_config"`
-	ClusterName            string      `json:"cluster_name" yaml:"cluster_name"`
-	Region                 *string     `json:"region" yaml:"region"`
-	AvailabilityZones      []string    `json:"availability_zones" yaml:"availability_zones"`
-	Bucket                 *string     `json:"bucket" yaml:"bucket"`
-	LogGroup               string      `json:"log_group" yaml:"log_group"`
-	WorkerNetworking       bool        `json:"worker_networking" yaml:"worker_networking"`
-	NATType                NATType     `json:"nat_type" yaml:"nat_type"`
-	Telemetry              bool        `json:"telemetry" yaml:"telemetry"`
-	ImagePythonServe       string      `json:"image_python_serve" yaml:"image_python_serve"`
-	ImagePythonServeGPU    string      `json:"image_python_serve_gpu" yaml:"image_python_serve_gpu"`
-	ImageTFServe           string      `json:"image_tf_serve" yaml:"image_tf_serve"`
-	ImageTFServeGPU        string      `json:"image_tf_serve_gpu" yaml:"image_tf_serve_gpu"`
-	ImageTFAPI             string      `json:"image_tf_api" yaml:"image_tf_api"`
-	ImageONNXServe         string      `json:"image_onnx_serve" yaml:"image_onnx_serve"`
-	ImageONNXServeGPU      string      `json:"image_onnx_serve_gpu" yaml:"image_onnx_serve_gpu"`
-	ImageOperator          string      `json:"image_operator" yaml:"image_operator"`
-	ImageManager           string      `json:"image_manager" yaml:"image_manager"`
-	ImageDownloader        string      `json:"image_downloader" yaml:"image_downloader"`
-	ImageClusterAutoscaler string      `json:"image_cluster_autoscaler" yaml:"image_cluster_autoscaler"`
-	ImageMetricsServer     string      `json:"image_metrics_server" yaml:"image_metrics_server"`
-	ImageNvidia            string      `json:"image_nvidia" yaml:"image_nvidia"`
-	ImageFluentd           string      `json:"image_fluentd" yaml:"image_fluentd"`
-	ImageStatsd            string      `json:"image_statsd" yaml:"image_statsd"`
-	ImageIstioProxy        string      `json:"image_istio_proxy" yaml:"image_istio_proxy"`
-	ImageIstioPilot        string      `json:"image_istio_pilot" yaml:"image_istio_pilot"`
-	ImageIstioCitadel      string      `json:"image_istio_citadel" yaml:"image_istio_citadel"`
-	ImageIstioGalley       string      `json:"image_istio_galley" yaml:"image_istio_galley"`
+	InstanceType           *string              `json:"instance_type" yaml:"instance_type"`
+	MinInstances           *int64               `json:"min_instances" yaml:"min_instances"`
+	MaxInstances           *int64               `json:"max_instances" yaml:"max_instances"`
+	InstanceVolumeSize     int64                `json:"instance_volume_size" yaml:"instance_volume_size"`
+	Spot                   *bool                `json:"spot" yaml:"spot"`
+	SpotConfig             *SpotConfig          `json:"spot_config" yaml:"spot_config"`
+	ClusterName            string               `json:"cluster_name" yaml:"cluster_name"`
+	Region                 *string              `json:"region" yaml:"region"`
+	AvailabilityZones      []string             `json:"availability_zones" yaml:"availability_zones"`
+	Bucket                 *string              `json:"bucket" yaml:"bucket"`
+	LogGroup               string               `json:"log_group" yaml:"log_group"`
+	WorkerNetworking       WorkerNetworkingType `json:"worker_networking" yaml:"worker_networking"`
+	NATType                NATType              `json:"nat_type" yaml:"nat_type"`
+	Telemetry              bool                 `json:"telemetry" yaml:"telemetry"`
+	ImagePythonServe       string               `json:"image_python_serve" yaml:"image_python_serve"`
+	ImagePythonServeGPU    string               `json:"image_python_serve_gpu" yaml:"image_python_serve_gpu"`
+	ImageTFServe           string               `json:"image_tf_serve" yaml:"image_tf_serve"`
+	ImageTFServeGPU        string               `json:"image_tf_serve_gpu" yaml:"image_tf_serve_gpu"`
+	ImageTFAPI             string               `json:"image_tf_api" yaml:"image_tf_api"`
+	ImageONNXServe         string               `json:"image_onnx_serve" yaml:"image_onnx_serve"`
+	ImageONNXServeGPU      string               `json:"image_onnx_serve_gpu" yaml:"image_onnx_serve_gpu"`
+	ImageOperator          string               `json:"image_operator" yaml:"image_operator"`
+	ImageManager           string               `json:"image_manager" yaml:"image_manager"`
+	ImageDownloader        string               `json:"image_downloader" yaml:"image_downloader"`
+	ImageClusterAutoscaler string               `json:"image_cluster_autoscaler" yaml:"image_cluster_autoscaler"`
+	ImageMetricsServer     string               `json:"image_metrics_server" yaml:"image_metrics_server"`
+	ImageNvidia            string               `json:"image_nvidia" yaml:"image_nvidia"`
+	ImageFluentd           string               `json:"image_fluentd" yaml:"image_fluentd"`
+	ImageStatsd            string               `json:"image_statsd" yaml:"image_statsd"`
+	ImageIstioProxy        string               `json:"image_istio_proxy" yaml:"image_istio_proxy"`
+	ImageIstioPilot        string               `json:"image_istio_pilot" yaml:"image_istio_pilot"`
+	ImageIstioCitadel      string               `json:"image_istio_citadel" yaml:"image_istio_citadel"`
+	ImageIstioGalley       string               `json:"image_istio_galley" yaml:"image_istio_galley"`
 }
 
 type SpotConfig struct {
@@ -442,7 +442,9 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 		return errors.Wrap(err, InstanceTypeKey)
 	}
 
-	// TODO can't do private networking and no nat
+	if cc.NATType == NoNAT && cc.WorkerNetworking == PrivateWorkerNetworking {
+		return ErrorNATRequiredWithPrivateWorkerNetworking()
+	}
 
 	if len(cc.AvailabilityZones) > 0 {
 		zones, err := awsClient.GetAvailabilityZones()

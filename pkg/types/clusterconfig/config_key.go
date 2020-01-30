@@ -34,6 +34,8 @@ const (
 	AvailabilityZonesKey                   = "availability_zones"
 	BucketKey                              = "bucket"
 	LogGroupKey                            = "log_group"
+	WorkerNetworkingKey                    = "worker_networking"
+	NATTypeKey                             = "nat_type"
 	TelemetryKey                           = "telemetry"
 	ImagePythonServeKey                    = "image_python_serve"
 	ImagePythonServeGPUKey                 = "image_python_serve_gpu"
