@@ -38,6 +38,7 @@ const (
 	ErrDuplicateEndpoint
 	ErrSpecifyAllOrNone
 	ErrOneOfPrerequisitesNotDefined
+	ErrAPIGatewayRequiredWithSharedLoadBalancer
 	ErrConfigNotApplicable
 	ErrMinReplicasGreaterThanMax
 	ErrInitReplicasGreaterThanMax
@@ -66,6 +67,7 @@ var _errorKinds = []string{
 	"err_duplicate_endpoint",
 	"err_specify_all_or_none",
 	"err_one_of_prerequisites_not_defined",
+	"err_api_gateway_required_with_shared_load_balancer",
 	"err_config_not_applicable",
 	"err_min_replicas_greater_than_max",
 	"err_init_replicas_greater_than_max",
@@ -210,7 +212,14 @@ func ErrorOneOfPrerequisitesNotDefined(argName string, prerequisite string, prer
 	})
 }
 
-func ErrorAPIGatewayConfigNotApplicable(invalidField string, indicatorField string) error {
+func ErrorAPIGatewayRequiredWithSharedLoadBalancer() error {
+	return errors.WithStack(Error{
+		Kind:    ErrAPIGatewayRequiredWithSharedLoadBalancer,
+		message: fmt.Sprintf("api gateway must be used with a shared load balancer; either set %s to \"true\", or set %s to %s or %s", userconfig.APIGatewayKey, userconfig.LoadBalancerKey, s.UserStr(userconfig.DedicatedPublicLoadBalancerType), s.UserStr(userconfig.DedicatedPrivateLoadBalancerType)),
+	})
+}
+
+func ErrorConfigNotApplicable(invalidField string, indicatorField string) error {
 	return errors.WithStack(Error{
 		Kind:    ErrConfigNotApplicable,
 		message: fmt.Sprintf("%s cannot be defined when %s is set to false", invalidField, indicatorField),

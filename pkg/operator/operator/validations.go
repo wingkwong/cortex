@@ -391,21 +391,12 @@ func validateAPI(
 	maxMem *kresource.Quantity,
 ) error {
 
-	if api.Networking.APIGateway && api.Networking.APIGatewayConfig == nil {
-		apiGateway, err := defaultAPIGatewayConfig()
-		if err != nil {
-			return err
-		}
-		api.Networking.APIGatewayConfig = apiGateway
-	}
-
-	if !api.Networking.APIGateway && api.Networking.APIGatewayConfig != nil {
-		err := ErrorAPIGatewayConfigNotApplicable(userconfig.APIGatewayConfigKey, userconfig.APIGatewayKey)
-		return errors.Wrap(err, api.Identify(), userconfig.NetworkingKey)
-	}
-
 	if api.Endpoint == nil {
 		api.Endpoint = pointer.String("/" + api.Name)
+	}
+
+	if err := validateNetworking(api.Networking); err != nil {
+		return errors.Wrap(err, api.Identify(), userconfig.NetworkingKey)
 	}
 
 	if err := validatePredictor(api.Predictor, projectFileMap); err != nil {
@@ -418,6 +409,26 @@ func validateAPI(
 
 	if err := validateEndpointCollisions(api, virtualServices); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func validateNetworking(networking *userconfig.Networking) error {
+	if !networking.APIGateway && networking.LoadBalancer == userconfig.SharedLoadBalancerType {
+		return ErrorAPIGatewayRequiredWithSharedLoadBalancer()
+	}
+
+	if networking.APIGateway && networking.APIGatewayConfig == nil {
+		apiGateway, err := defaultAPIGatewayConfig()
+		if err != nil {
+			return err
+		}
+		networking.APIGatewayConfig = apiGateway
+	}
+
+	if !networking.APIGateway && networking.APIGatewayConfig != nil {
+		return ErrorConfigNotApplicable(userconfig.APIGatewayConfigKey, userconfig.APIGatewayKey)
 	}
 
 	return nil
