@@ -44,7 +44,6 @@ def start():
     spec = os.environ["SPEC"]
     project_dir = os.environ["PROJECT_DIR"]
     port = os.environ["PORT"]
-    assert_api_version()
     storage = S3(bucket=os.environ["CORTEX_BUCKET"], region=os.environ["AWS_REGION"])
     try:
         raw_api_spec = get_spec(storage, cache_dir, spec)
@@ -193,6 +192,7 @@ def extract_waitress_params(config):
 
 
 def main():
+    assert_api_version()
     parser = argparse.ArgumentParser()
     na = parser.add_argument_group("required named arguments")
     na.add_argument("--port", type=int, required=True, help="port (on localhost) to use")
