@@ -27,7 +27,7 @@ const (
 
 var _authTypes = []string{
 	"unknown",
-	"no_auth",
+	"none",
 	"iam",
 	"api_key",
 }

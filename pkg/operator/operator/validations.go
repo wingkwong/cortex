@@ -31,6 +31,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
 	s "github.com/cortexlabs/cortex/pkg/lib/strings"
+	libtime "github.com/cortexlabs/cortex/pkg/lib/time"
 	"github.com/cortexlabs/cortex/pkg/lib/urls"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
@@ -80,7 +81,7 @@ var _apiValidation = &cr.StructValidation{
 		},
 		{
 			StructField:      "Networking",
-			StructValidation: userconfig.NetworkingValidation,
+			StructValidation: _networkingValidation,
 		},
 		_predictorValidation,
 		_computeFieldValidation,
@@ -142,6 +143,69 @@ var _predictorValidation = &cr.StructFieldValidation{
 				StructField:         "SignatureKey",
 				StringPtrValidation: &cr.StringPtrValidation{},
 			},
+		},
+	},
+}
+
+var _networkingValidation = &cr.StructValidation{
+	StructFieldValidations: []*cr.StructFieldValidation{
+		{
+			StructField: "Timeout",
+			StringValidation: &cr.StringValidation{
+				Default: "29s",
+			},
+			Parser: cr.DurationParser(&cr.QuantityValidation{
+				GreaterThan:       pointer.Duration(libtime.MustParseDuration("0s")),
+				LessThanOrEqualTo: pointer.Duration(libtime.MustParseDuration("29s")),
+			}),
+		},
+		{
+			StructField: "LoadBalancer",
+			StringValidation: &cr.StringValidation{
+				AllowedValues: userconfig.LoadBalancerTypeStrings(),
+				Default:       userconfig.SharedLoadBalancerType.String(),
+			},
+			Parser: func(str string) (interface{}, error) {
+				return userconfig.LoadBalancerTypeFromString(str), nil
+			},
+		},
+		{
+			StructField: "APIGateway",
+			BoolValidation: &cr.BoolValidation{
+				Default: true,
+			},
+		},
+		{
+			StructField: "APIGatewayConfig",
+			StructValidation: &cr.StructValidation{
+				DefaultNil:             true,
+				StructFieldValidations: _apiGatewayValidations,
+			},
+		},
+	},
+}
+
+var _apiGatewayValidations = []*cr.StructFieldValidation{
+	{
+		StructField: "Auth",
+		StringValidation: &cr.StringValidation{
+			AllowedValues: userconfig.AuthTypeStrings(),
+			Default:       userconfig.NoAuthType.String(),
+		},
+		Parser: func(str string) (interface{}, error) {
+			return userconfig.AuthTypeFromString(str), nil
+		},
+	},
+	{
+		StructField: "RequestsPerSecondLimit",
+		Int64PtrValidation: &cr.Int64PtrValidation{
+			GreaterThan: pointer.Int64(0),
+		},
+	},
+	{
+		StructField: "BurstLimit",
+		Int64PtrValidation: &cr.Int64PtrValidation{
+			GreaterThan: pointer.Int64(0),
 		},
 	},
 }
@@ -246,6 +310,19 @@ func surgeOrUnavailableValidator(str string) (string, error) {
 	return str, nil
 }
 
+func defaultAPIGatewayConfig() (*userconfig.APIGateway, error) {
+	apiGateway := &userconfig.APIGateway{}
+	var emptyMap interface{} = map[interface{}]interface{}{}
+	errs := cr.Struct(apiGateway, emptyMap, &cr.StructValidation{
+		DefaultNil:             false,
+		StructFieldValidations: _apiGatewayValidations,
+	})
+	if errors.HasError(errs) {
+		return nil, errors.FirstError(errs...)
+	}
+	return apiGateway, nil
+}
+
 func ExtractAPIConfigs(configBytes []byte, projectFileMap map[string][]byte, filePath string) ([]userconfig.API, error) {
 	var err error
 
@@ -315,7 +392,7 @@ func validateAPI(
 ) error {
 
 	if api.Networking.APIGateway && api.Networking.APIGatewayConfig == nil {
-		apiGateway, err := userconfig.DefaultAPIGatewayConfig()
+		apiGateway, err := defaultAPIGatewayConfig()
 		if err != nil {
 			return err
 		}
