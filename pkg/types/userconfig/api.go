@@ -185,6 +185,9 @@ func (api *API) UserStr() string {
 	sb.WriteString(fmt.Sprintf("%s:\n", PredictorKey))
 	sb.WriteString(s.Indent(api.Predictor.UserStr(), "  "))
 
+	sb.WriteString(fmt.Sprintf("%s:\n", NetworkingKey))
+	sb.WriteString(s.Indent(api.Networking.UserStr(), "  "))
+
 	if api.Compute != nil {
 		sb.WriteString(fmt.Sprintf("%s:\n", ComputeKey))
 		sb.WriteString(s.Indent(api.Compute.UserStr(), "  "))
@@ -192,6 +195,30 @@ func (api *API) UserStr() string {
 	if api.Tracker != nil {
 		sb.WriteString(fmt.Sprintf("%s:\n", TrackerKey))
 		sb.WriteString(s.Indent(api.Tracker.UserStr(), "  "))
+	}
+	return sb.String()
+}
+
+func (networking *Networking) UserStr() string {
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("%s: %s\n", TimeoutKey, networking.Timeout.String()))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", LoadBalancerKey, networking.LoadBalancer.String()))
+	sb.WriteString(fmt.Sprintf("%s: %s\n", APIGatewayKey, s.Bool(networking.APIGateway)))
+	if networking.APIGateway == true && networking.APIGatewayConfig != nil {
+		sb.WriteString(fmt.Sprintf("%s:\n", APIGatewayKey))
+		sb.WriteString(s.Indent(networking.APIGatewayConfig.UserStr(), "  "))
+	}
+	return sb.String()
+}
+
+func (apiGateway *APIGateway) UserStr() string {
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("%s: %s\n", AuthKey, apiGateway.Auth.String()))
+	if apiGateway.RequestsPerSecondLimit != nil {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", RequestsPerSecondLimitKey, s.Int64(*apiGateway.RequestsPerSecondLimit)))
+	}
+	if apiGateway.BurstLimit != nil {
+		sb.WriteString(fmt.Sprintf("%s: %s\n", BurstLimitKey, s.Int64(*apiGateway.BurstLimit)))
 	}
 	return sb.String()
 }
