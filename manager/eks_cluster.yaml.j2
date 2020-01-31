@@ -16,11 +16,12 @@ apiVersion: eksctl.io/v1alpha5
 kind: ClusterConfig
 
 metadata:
-  name: $CORTEX_CLUSTER_NAME
-  region: $CORTEX_REGION
+  name: {{ config["cluster_name"] }}
+  region: {{ config["region"] }}
   version: "1.14"
 
 availabilityZones: $CORTEX_AVAILABILITY_ZONES
+availabilityZones2: {{ config["availability_zones"] }}
 
 vpc:
   nat:
