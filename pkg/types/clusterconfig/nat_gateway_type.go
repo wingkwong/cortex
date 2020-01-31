@@ -27,7 +27,7 @@ const (
 
 var _natGateways = []string{
 	"unknown",
-	"disable",
+	"none",
 	"single",
 	"highly_available",
 }

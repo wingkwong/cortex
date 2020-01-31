@@ -430,12 +430,12 @@ func clusterConfigConfirmaionStr(clusterConfig clusterconfig.Config, awsCreds AW
 		}
 	}
 
-	if clusterConfig.WorkerNetworking != defaultConfig.WorkerNetworking {
-		items.Add(clusterconfig.WorkerNetworkingUserKey, clusterConfig.WorkerNetworking)
+	if *clusterConfig.WorkerNetworking != *defaultConfig.WorkerNetworking {
+		items.Add(clusterconfig.WorkerNetworkingUserKey, *clusterConfig.WorkerNetworking)
 	}
 
-	if clusterConfig.NATGateway != defaultConfig.NATGateway {
-		items.Add(clusterconfig.NATGatewayUserKey, clusterConfig.NATGateway)
+	if *clusterConfig.NATGateway != *defaultConfig.NATGateway {
+		items.Add(clusterconfig.NATGatewayUserKey, *clusterConfig.NATGateway)
 	}
 
 	if clusterConfig.Telemetry != defaultConfig.Telemetry {

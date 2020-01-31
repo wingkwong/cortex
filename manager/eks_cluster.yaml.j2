@@ -24,7 +24,13 @@ availabilityZones: $CORTEX_AVAILABILITY_ZONES
 
 vpc:
   nat:
-    gateway: $CORTEX_NAT_GATEWAY
+    {% if config.get("nat_gateway") == "highly_available" %}
+    gateway: HighlyAvailable
+    {% elif config.get("nat_gateway") == "single" %}
+    gateway: Single
+    {% else %}
+    gateway: Disable
+    {% endif %}
 
 cloudWatch:
   clusterLogging:
