@@ -38,8 +38,7 @@ function ensure_eks() {
     echo -e "￮ spinning up the cluster ... (this will take about 15 minutes)\n"
 
     python render_template.py $CORTEX_CLUSTER_CONFIG_FILE eks_cluster.yaml.j2 > $CORTEX_CLUSTER_WORKSPACE/eks_cluster.yaml
-    eksctl create cluster --timeout=$EKSCTL_TIMEOUT -f $CORTEX_CLUSTER_WORKSPACE/eks_cluster.yaml
-
+    envsubst < $CORTEX_CLUSTER_WORKSPACE/eks_cluster.yaml | eksctl create cluster --timeout=$EKSCTL_TIMEOUT -f -
 
     # https://docs.aws.amazon.com/eks/latest/userguide/cni-upgrades.html
     kubectl apply -f https://raw.githubusercontent.com/aws/amazon-vpc-cni-k8s/v1.5.5/config/v1.5/aws-k8s-cni.yaml >/dev/null
