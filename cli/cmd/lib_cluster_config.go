@@ -323,7 +323,7 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds A
 	rows = append(rows, []interface{}{"1 eks cluster", s.DollarsMaxPrecision(eksPrice)})
 	rows = append(rows, []interface{}{"1 20gb ebs volume for the operator", s.DollarsAndTenthsOfCents(operatorEBSPrice)})
 	rows = append(rows, []interface{}{"1 t3.medium for the operator", s.DollarsMaxPrecision(operatorInstancePrice)})
-	rows = append(rows, []interface{}{"2 elastic load balancers", s.DollarsMaxPrecision(elbPrice) + " each"}) // TODO use NLB pricing and update count
+	rows = append(rows, []interface{}{"2 elastic load balancers", s.DollarsMaxPrecision(2 * elbPrice)}) // TODO use NLB pricing and update count
 
 	if *clusterConfig.NATGateway == clusterconfig.OneNAT {
 		rows = append(rows, []interface{}{"1 nat gateway", s.DollarsMaxPrecision(natPrice)})
