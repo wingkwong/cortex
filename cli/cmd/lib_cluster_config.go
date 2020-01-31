@@ -305,7 +305,7 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds A
 	if *clusterConfig.NATGateway == clusterconfig.OneNAT {
 		userNLBPrice = natPrice
 	} else if *clusterConfig.NATGateway == clusterconfig.HighlyAvailableNAT {
-		userNLBPrice = 3 * natPrice // TODO is 3 correct?
+		userNLBPrice = 3 * natPrice // TODO it seems the be the number of AZ's. We may not know this yet, but once we auto-generate the AZ's smarter we will.
 	}
 
 	fixedPrice := eksPrice + operatorInstancePrice + operatorEBSPrice + 2*elbPrice + userNLBPrice // TODO use NLB pricing and update count
@@ -328,7 +328,7 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds A
 	if *clusterConfig.NATGateway == clusterconfig.OneNAT {
 		rows = append(rows, []interface{}{"1 nat gateway", s.DollarsMaxPrecision(natPrice)})
 	} else if *clusterConfig.NATGateway == clusterconfig.HighlyAvailableNAT {
-		rows = append(rows, []interface{}{"3 nat gateways", s.DollarsMaxPrecision(3 * natPrice)}) // TODO is 3 correct?
+		rows = append(rows, []interface{}{"3 nat gateways", s.DollarsMaxPrecision(3 * natPrice)}) // TODO it seems the be the number of AZ's. We may not know this yet, but once we auto-generate the AZ's smarter we will.
 	}
 
 	instanceStr := "instances"
