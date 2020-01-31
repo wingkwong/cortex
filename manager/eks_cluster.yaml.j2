@@ -20,8 +20,7 @@ metadata:
   region: {{ config["region"] }}
   version: "1.14"
 
-availabilityZones: $CORTEX_AVAILABILITY_ZONES
-availabilityZones2: {{ config["availability_zones"] }}
+availabilityZones: {{ config["availability_zones"] }}
 
 vpc:
   nat:
