@@ -422,24 +422,7 @@ func (cc *Config) ToAccessConfig() AccessConfig {
 	}
 }
 
-func (cc *Config) Validate(awsClient *aws.Client) error {
-	if *cc.MinInstances > *cc.MaxInstances {
-		return ErrorMinInstancesGreaterThanMax(*cc.MinInstances, *cc.MaxInstances)
-	}
-
-	bucketRegion, _ := aws.GetBucketRegion(*cc.Bucket)
-	if bucketRegion != "" && bucketRegion != *cc.Region { // if the bucket didn't exist, we will create it in the correct region, so there is no error
-		return ErrorS3RegionDiffersFromCluster(*cc.Bucket, bucketRegion, *cc.Region)
-	}
-
-	if _, ok := aws.InstanceMetadatas[*cc.Region][*cc.InstanceType]; !ok {
-		return errors.Wrap(ErrorInstanceTypeNotSupportedInRegion(*cc.InstanceType, *cc.Region), InstanceTypeKey)
-	}
-
-	if err := awsClient.VerifyInstanceQuota(*cc.InstanceType); err != nil {
-		return errors.Wrap(err, InstanceTypeKey)
-	}
-
+func (cc *Config) PopulateDefaults() {
 	noNAT := NoNAT
 	oneNAT := OneNAT
 	publicNetworking := PublicWorkerNetworking
@@ -459,6 +442,27 @@ func (cc *Config) Validate(awsClient *aws.Client) error {
 		} else {
 			cc.WorkerNetworking = &privateNetworking
 		}
+	}
+}
+
+func (cc *Config) Validate(awsClient *aws.Client) error {
+	cc.PopulateDefaults()
+
+	if *cc.MinInstances > *cc.MaxInstances {
+		return ErrorMinInstancesGreaterThanMax(*cc.MinInstances, *cc.MaxInstances)
+	}
+
+	bucketRegion, _ := aws.GetBucketRegion(*cc.Bucket)
+	if bucketRegion != "" && bucketRegion != *cc.Region { // if the bucket didn't exist, we will create it in the correct region, so there is no error
+		return ErrorS3RegionDiffersFromCluster(*cc.Bucket, bucketRegion, *cc.Region)
+	}
+
+	if _, ok := aws.InstanceMetadatas[*cc.Region][*cc.InstanceType]; !ok {
+		return errors.Wrap(ErrorInstanceTypeNotSupportedInRegion(*cc.InstanceType, *cc.Region), InstanceTypeKey)
+	}
+
+	if err := awsClient.VerifyInstanceQuota(*cc.InstanceType); err != nil {
+		return errors.Wrap(err, InstanceTypeKey)
 	}
 
 	if *cc.NATGateway == NoNAT && *cc.WorkerNetworking == PrivateWorkerNetworking {
@@ -893,6 +897,7 @@ func SetDefaults(cc *Config) error {
 	if errors.HasError(errs) {
 		return errors.FirstError(errs...)
 	}
+	cc.PopulateDefaults()
 	return nil
 }
 
