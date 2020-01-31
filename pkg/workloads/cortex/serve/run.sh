@@ -22,8 +22,16 @@ if [ -f "/mnt/project/requirements.txt" ]; then
     pip --no-cache-dir install -r /mnt/project/requirements.txt
 fi
 
+mkdir -p /mnt/project
+
 cd /mnt/project
 
+echo $DOWNLOAD_CONFIG
 
+/usr/bin/python3.6 /src/cortex/serve/download.py --download=ewogICJkb3dubG9hZF9hcmdzIjogWwogICAgewogICAgICAiZnJvbSI6ICJzMzovL2NvcnRleC1jbHVzdGVyLXZpc2hhbC9wcm9qZWN0cy8yOGNjZDZmOTM4YTM4MmRlNTcxMjcwYTMyMjRjMmQ3ZGE3MWM2ZGI5ZTc0Nzg0NTVkNmM0ODY0ZmI0MmJmNzIuemlwIiwKICAgICAgInRvIjogIi9tbnQvcHJvamVjdCIsCiAgICAgICJ1bnppcCI6IHRydWUsCiAgICAgICJpdGVtX25hbWUiOiAidGhlIHByb2plY3QgY29kZSIsCiAgICAgICJ0Zl9tb2RlbF92ZXJzaW9uX3JlbmFtZSI6ICIiLAogICAgICAiaGlkZV9mcm9tX2xvZyI6IHRydWUsCiAgICAgICJoaWRlX3VuemlwcGluZ19sb2ciOiB0cnVlCiAgICB9CiAgXSwKICAibGFzdF9sb2ciOiAicHVsbGluZyB0aGUgcHl0aG9uIHNlcnZpbmcgaW1hZ2UiCn0=
 
-gunicorn -b 0.0.0.0:$PORT --access-logfile=- --pythonpath=$PYTHONPATH --statsd-host=$HOST_IP:8125 --chdir /mnt/project --log-level debug cortex.serve.wsgi:app
+export PORT="${MY_PORT:-8888}"
+
+export MY_PORT="8888"
+
+gunicorn -b 0.0.0.0:$PORT --access-logfile=- --pythonpath=$PYTHONPATH --chdir /mnt/project --log-level debug cortex.serve.wsgi:app

@@ -43,7 +43,7 @@ def start():
     cache_dir = os.environ["CACHE_DIR"]
     spec = os.environ["SPEC"]
     project_dir = os.environ["PROJECT_DIR"]
-    port = os.environ["PORT"]
+    port = os.environ["MY_PORT"]
     storage = S3(bucket=os.environ["CORTEX_BUCKET"], region=os.environ["AWS_REGION"])
     try:
         raw_api_spec = get_spec(storage, cache_dir, spec)
@@ -69,10 +69,15 @@ def start():
     waitress_kwargs["listen"] = "*:{}".format(port)
 
     open("/health_check.txt", "a").close()
-    # cx_logger().info("{} api is live".format(api.name))
+    cx_logger().info("{} api is live".format(api.name))
     # serve(app, **waitress_kwargs)
     # app.port = port
     return app
+
+
+@app.route("/healthz", methods=["GET"])
+def health():
+    return jsonify({"ok": True})
 
 
 @app.route("/predict", methods=["POST"])

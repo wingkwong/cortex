@@ -40,8 +40,8 @@ class API:
         self.storage = storage
 
         host_ip = os.environ["HOST_IP"]
-        datadog.initialize(statsd_host=host_ip, statsd_port="8125")
-        self.statsd = datadog.statsd
+        # datadog.initialize(statsd_host=host_ip, statsd_port="8125")
+        # self.statsd = datadog.statsd
 
     def get_cached_classes(self):
         prefix = os.path.join(self.metadata_root, self.id, "classes") + "/"
@@ -74,6 +74,7 @@ class API:
             self.post_metrics(metrics)
 
     def post_metrics(self, metrics):
+        return
         try:
             if self.statsd is None:
                 raise CortexException("statsd client not initialized")  # unexpected

@@ -1,0 +1,95 @@
+
+# Please edit the object below. Lines beginning with a '#' will be ignored,
+# and an empty file will abort the edit. If an error occurs while saving this file will be
+# reopened with the relevant failures.
+#
+apiVersion: serving.knative.dev/v1alpha1
+kind: Service
+metadata:
+  name: yolov4
+  namespace: default
+spec:
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/target: "2"
+      labels:
+        apiID: d5867fd5c6df8802568fcd9aae46f7bc923459068f45bbc03795483cd2f174a
+        apiName: yolov4
+      namespace: default
+    spec:
+      containers:
+      - args:
+        - --port=8888
+        - --spec=s3://cortex-cluster-vishal/apis/iris-classifier/3c26b59872b2823c6793f4a4233cec9876ef0f6e965650f735bd867f3ac47ba/spec.msgpack
+        - --cache-dir=/mnt/spec
+        - --project-dir=/mnt/project
+        env:
+        - name: AWS_ACCESS_KEY_ID
+          value: <aws_access_key_id>
+        - name: AWS_SECRET_ACCESS_KEY
+          value: <aws_secret_access_key>
+        - name: FLASK_ENV
+          value: development
+        - name: HOST_IP
+          value: hello
+        - name: MY_PORT
+          value: "8888"
+        - name: PYTHONUNBUFFERED
+          value: "TRUE"
+        - name: SPEC
+          value: s3://cortex-cluster-vishal/apis/iris-classifier/3c26b59872b2823c6793f4a4233cec9876ef0f6e965650f735bd867f3ac47ba/spec.msgpack
+        - name: CACHE_DIR
+          value: /mnt/spec
+        - name: PROJECT_DIR
+          value: /mnt/project
+        - name: DOWNLOAD_CONFIG
+          value: ewogICJkb3dubG9hZF9hcmdzIjogWwogICAgewogICAgICAiZnJvbSI6ICJzMzovL2NvcnRleC1jbHVzdGVyLXZpc2hhbC9wcm9qZWN0cy8xNWJmODNmMzEyNWRlM2FmY2IyYmE5YmY4ZGNmYTgyOGY3Yzk1MGIwMmZhNjU5NTQzZDI0OTRmM2FkMmFiMjQuemlwIiwKICAgICAgInRvIjogIi9tbnQvcHJvamVjdCIsCiAgICAgICJ1bnppcCI6IHRydWUsCiAgICAgICJpdGVtX25hbWUiOiAidGhlIHByb2plY3QgY29kZSIsCiAgICAgICJ0Zl9tb2RlbF92ZXJzaW9uX3JlbmFtZSI6ICIiLAogICAgICAiaGlkZV9mcm9tX2xvZyI6IHRydWUsCiAgICAgICJoaWRlX3VuemlwcGluZ19sb2ciOiB0cnVlCiAgICB9CiAgXSwKICAibGFzdF9sb2ciOiAicHVsbGluZyB0aGUgcHl0aG9uIHNlcnZpbmcgaW1hZ2UiCn0=
+        envFrom:
+        - configMapRef:
+            name: env-vars
+        - secretRef:
+            name: aws-credentials
+        image: 969758392368.dkr.ecr.us-west-2.amazonaws.com/cortexlabs/python-serve:latest
+        imagePullPolicy: Always
+        name: api
+        ports:
+        - containerPort: 8888
+          protocol: TCP
+        readinessProbe:
+          httpGet:
+            path: "/healthz"
+          failureThreshold: 2
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          successThreshold: 1
+          timeoutSeconds: 5
+        resources:
+          requests:
+            cpu: "0.2"
+            memory: "100m"
+      # nodeSelector:
+      #   workload: "true"
+      # imagePullSecrets:
+      #   - name: ecr-creds
+      serviceAccountName: default
+      # tolerations:
+      # - effect: NoSchedule
+      #   key: workload
+      #   operator: Equal
+      #   value: "true"
+      # - effect: NoSchedule
+      #   key: nvidia.com/gpu
+      #   operator: Equal
+      #   value: "true"
+      # - effect: NoExecute
+      #   key: node.kubernetes.io/not-ready
+      #   operator: Exists
+      #   tolerationSeconds: 300
+      # - effect: NoExecute
+      #   key: node.kubernetes.io/unreachable
+      #   operator: Exists
+      #   tolerationSeconds: 300
+
+
+# curl $(glooctl proxy url --name knative-external-proxy)/predict -H "Host: yolov4.default.example.com" -H "Content-Type: application/json" -X POST -d @sample.json

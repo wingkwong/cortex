@@ -1,0 +1,130 @@
+# Please edit the object below. Lines beginning with a '#' will be ignored,
+# and an empty file will abort the edit. If an error occurs while saving this file will be
+# reopened with the relevant failures.
+#
+apiVersion: v1
+data:
+  _example: |
+    ################################
+    #                              #
+    #    EXAMPLE CONFIGURATION     #
+    #                              #
+    ################################
+
+    # This block is not actually functional configuration,
+    # but serves to illustrate the available configuration
+    # options and document them in a way that is accessible
+    # to users that `kubectl edit` this config map.
+    #
+    # These sample configuration options may be copied out of
+    # this example block and unindented to be in the data block
+    # to actually change the configuration.
+
+    # The Revision ContainerConcurrency field specifies the maximum number
+    # of requests the Container can handle at once. Container concurrency
+    # target percentage is how much of that maximum to use in a stable
+    # state. E.g. if a Revision specifies ContainerConcurrency of 10, then
+    # the Autoscaler will try to maintain 7 concurrent connections per pod
+    # on average.
+    # Note: this limit will be applied to container concurrency set at every
+    # level (ConfigMap, Revision Spec or Annotation).
+    # For legacy and backwards compatibility reasons, this value also accepts
+    # fractional values in (0, 1] interval (i.e. 0.7 ⇒ 70%).
+    # Thus minimal percentage value must be greater than 1.0, or it will be
+    # treated as a fraction.
+    container-concurrency-target-percentage: "70"
+
+    # The container concurrency target default is what the Autoscaler will
+    # try to maintain when concurrency is used as the scaling metric for a
+    # Revision and the Revision specifies unlimited concurrency.
+    # Even when specifying unlimited concurrency, the autoscaler will
+    # horizontally scale the application based on this target concurrency.
+    # NOTE: Only one metric can be used for autoscaling a Revision.
+    container-concurrency-target-default: "100"
+
+    # The requests per second (RPS) target default is what the Autoscaler will
+    # try to maintain when RPS is used as the scaling metric for a Revision and
+    # the Revision specifies unlimited RPS. Even when specifying unlimited RPS,
+    # the autoscaler will horizontally scale the application based on this
+    # target RPS.
+    # Must be greater than 1.0.
+    # NOTE: Only one metric can be used for autoscaling a Revision.
+    requests-per-second-target-default: "200"
+
+    # The target burst capacity specifies the size of burst in concurrent
+    # requests that the system operator expects the system will receive.
+    # Autoscaler will try to protect the system from queueing by introducing
+    # Activator in the request path if the current spare capacity of the
+    # service is less than this setting.
+    # If this setting is 0, then Activator will be in the request path only
+    # when the revision is scaled to 0.
+    # If this setting is > 0 and container-concurrency-target-percentage is
+    # 100% or 1.0, then activator will always be in the request path.
+    # -1 denotes unlimited target-burst-capacity and activator will always
+    # be in the request path.
+    # Other negative values are invalid.
+    target-burst-capacity: "200"
+
+    # When operating in a stable mode, the autoscaler operates on the
+    # average concurrency over the stable window.
+    stable-window: "60s"
+
+    # When observed average concurrency during the panic window reaches
+    # panic-threshold-percentage the target concurrency, the autoscaler
+    # enters panic mode. When operating in panic mode, the autoscaler
+    # scales on the average concurrency over the panic window which is
+    # panic-window-percentage of the stable-window.
+    panic-window-percentage: "10.0"
+
+    # Absolute panic window duration.
+    # Deprecated in favor of panic-window-percentage.
+    # Existing revisions will continue to scale based on panic-window
+    # but new revisions will default to panic-window-percentage.
+    panic-window: "6s"
+
+    # The percentage of the container concurrency target at which to
+    # enter panic mode when reached within the panic window.
+    panic-threshold-percentage: "200.0"
+
+    # Max scale up rate limits the rate at which the autoscaler will
+    # increase pod count. It is the maximum ratio of desired pods versus
+    # observed pods.
+    # Cannot less or equal to 1.
+    # I.e with value of 2.0 the number of pods can at most go N to 2N
+    # over single Autoscaler period (see tick-interval), but at least N to
+    # N+1, if Autoscaler needs to scale up.
+    max-scale-up-rate: "1000.0"
+
+    # Max scale down rate limits the rate at which the autoscaler will
+    # decrease pod count. It is the maximum ratio of observed pods versus
+    # desired pods.
+    # Cannot less or equal to 1.
+    # I.e. with value of 2.0 the number of pods can at most go N to N/2
+    # over single Autoscaler evaluation period (see tick-interval), but at
+    # least N to N-1, if Autoscaler needs to scale down.
+    # Not yet used // TODO(vagababov) remove once other parts are ready.
+    max-scale-down-rate: "2.0"
+
+    # Scale to zero feature flag
+    enable-scale-to-zero: "true"
+
+    # Tick interval is the time between autoscaling calculations.
+    tick-interval: "2s"
+
+    # Dynamic parameters (take effect when config map is updated):
+
+    # Scale to zero grace period is the time an inactive revision is left
+    # running before it is scaled to zero (min: 30s).
+    scale-to-zero-grace-period: "30s"
+kind: ConfigMap
+metadata:
+  annotations:
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"v1","data":{"_example":"################################\n#                              #\n#    EXAMPLE CONFIGURATION     #\n#                              #\n################################\n\n# This block is not actually functional configuration,\n# but serves to illustrate the available configuration\n# options and document them in a way that is accessible\n# to users that `kubectl edit` this config map.\n#\n# These sample configuration options may be copied out of\n# this example block and unindented to be in the data block\n# to actually change the configuration.\n\n# The Revision ContainerConcurrency field specifies the maximum number\n# of requests the Container can handle at once. Container concurrency\n# target percentage is how much of that maximum to use in a stable\n# state. E.g. if a Revision specifies ContainerConcurrency of 10, then\n# the Autoscaler will try to maintain 7 concurrent connections per pod\n# on average.\n# Note: this limit will be applied to container concurrency set at every\n# level (ConfigMap, Revision Spec or Annotation).\n# For legacy and backwards compatibility reasons, this value also accepts\n# fractional values in (0, 1] interval (i.e. 0.7 ⇒ 70%).\n# Thus minimal percentage value must be greater than 1.0, or it will be\n# treated as a fraction.\ncontainer-concurrency-target-percentage: \"70\"\n\n# The container concurrency target default is what the Autoscaler will\n# try to maintain when concurrency is used as the scaling metric for a\n# Revision and the Revision specifies unlimited concurrency.\n# Even when specifying unlimited concurrency, the autoscaler will\n# horizontally scale the application based on this target concurrency.\n# NOTE: Only one metric can be used for autoscaling a Revision.\ncontainer-concurrency-target-default: \"100\"\n\n# The requests per second (RPS) target default is what the Autoscaler will\n# try to maintain when RPS is used as the scaling metric for a Revision and\n# the Revision specifies unlimited RPS. Even when specifying unlimited RPS,\n# the autoscaler will horizontally scale the application based on this\n# target RPS.\n# Must be greater than 1.0.\n# NOTE: Only one metric can be used for autoscaling a Revision.\nrequests-per-second-target-default: \"200\"\n\n# The target burst capacity specifies the size of burst in concurrent\n# requests that the system operator expects the system will receive.\n# Autoscaler will try to protect the system from queueing by introducing\n# Activator in the request path if the current spare capacity of the\n# service is less than this setting.\n# If this setting is 0, then Activator will be in the request path only\n# when the revision is scaled to 0.\n# If this setting is \u003e 0 and container-concurrency-target-percentage is\n# 100% or 1.0, then activator will always be in the request path.\n# -1 denotes unlimited target-burst-capacity and activator will always\n# be in the request path.\n# Other negative values are invalid.\ntarget-burst-capacity: \"200\"\n\n# When operating in a stable mode, the autoscaler operates on the\n# average concurrency over the stable window.\nstable-window: \"60s\"\n\n# When observed average concurrency during the panic window reaches\n# panic-threshold-percentage the target concurrency, the autoscaler\n# enters panic mode. When operating in panic mode, the autoscaler\n# scales on the average concurrency over the panic window which is\n# panic-window-percentage of the stable-window.\npanic-window-percentage: \"10.0\"\n\n# Absolute panic window duration.\n# Deprecated in favor of panic-window-percentage.\n# Existing revisions will continue to scale based on panic-window\n# but new revisions will default to panic-window-percentage.\npanic-window: \"6s\"\n\n# The percentage of the container concurrency target at which to\n# enter panic mode when reached within the panic window.\npanic-threshold-percentage: \"200.0\"\n\n# Max scale up rate limits the rate at which the autoscaler will\n# increase pod count. It is the maximum ratio of desired pods versus\n# observed pods.\n# Cannot less or equal to 1.\n# I.e with value of 2.0 the number of pods can at most go N to 2N\n# over single Autoscaler period (see tick-interval), but at least N to\n# N+1, if Autoscaler needs to scale up.\nmax-scale-up-rate: \"1000.0\"\n\n# Max scale down rate limits the rate at which the autoscaler will\n# decrease pod count. It is the maximum ratio of observed pods versus\n# desired pods.\n# Cannot less or equal to 1.\n# I.e. with value of 2.0 the number of pods can at most go N to N/2\n# over single Autoscaler evaluation period (see tick-interval), but at\n# least N to N-1, if Autoscaler needs to scale down.\n# Not yet used // TODO(vagababov) remove once other parts are ready.\nmax-scale-down-rate: \"2.0\"\n\n# Scale to zero feature flag\nenable-scale-to-zero: \"true\"\n\n# Tick interval is the time between autoscaling calculations.\ntick-interval: \"2s\"\n\n# Dynamic parameters (take effect when config map is updated):\n\n# Scale to zero grace period is the time an inactive revision is left\n# running before it is scaled to zero (min: 30s).\nscale-to-zero-grace-period: \"30s\"\n"},"kind":"ConfigMap","metadata":{"annotations":{},"labels":{"serving.knative.dev/release":"v0.10.0"},"name":"config-autoscaler","namespace":"knative-serving"}}
+  creationTimestamp: 2020-01-28T22:17:13Z
+  labels:
+    serving.knative.dev/release: v0.10.0
+  name: config-autoscaler
+  namespace: knative-serving
+  resourceVersion: "261055"
+  selfLink: /api/v1/namespaces/knative-serving/configmaps/config-autoscaler
