@@ -214,6 +214,16 @@ func getClusterUpdateConfig(cachedClusterConfig clusterconfig.Config, awsCreds A
 		}
 		userClusterConfig.InstanceVolumeSize = cachedClusterConfig.InstanceVolumeSize
 
+		if *userClusterConfig.WorkerNetworking != *cachedClusterConfig.WorkerNetworking {
+			return nil, ErrorConfigCannotBeChangedOnUpdate(clusterconfig.WorkerNetworkingKey, cachedClusterConfig.WorkerNetworking)
+		}
+		userClusterConfig.WorkerNetworking = cachedClusterConfig.WorkerNetworking
+
+		if *userClusterConfig.NATGateway != *cachedClusterConfig.NATGateway {
+			return nil, ErrorConfigCannotBeChangedOnUpdate(clusterconfig.NATGatewayKey, cachedClusterConfig.NATGateway)
+		}
+		userClusterConfig.NATGateway = cachedClusterConfig.NATGateway
+
 		if userClusterConfig.Spot != nil && *userClusterConfig.Spot != *cachedClusterConfig.Spot {
 			return nil, ErrorConfigCannotBeChangedOnUpdate(clusterconfig.SpotKey, *cachedClusterConfig.Spot)
 		}
