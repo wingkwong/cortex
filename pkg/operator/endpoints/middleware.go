@@ -53,7 +53,7 @@ func ClientIDMiddleware(next http.Handler) http.Handler {
 
 func AuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		authHeader := r.Header.Get("Authorization")
+		authHeader := r.Header.Get("CortexAuthorization")
 
 		if !strings.HasPrefix(authHeader, "CortexAWS") {
 			respondError(w, ErrorAuthHeaderMissing())

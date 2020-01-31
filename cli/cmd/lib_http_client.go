@@ -197,7 +197,7 @@ func StreamLogs(apiName string) error {
 	}
 
 	header := http.Header{}
-	header.Set("Authorization", authHeader)
+	header.Set("CortexAuthorization", authHeader)
 	header.Set("CortexAPIVersion", consts.CortexVersion)
 
 	var dialer = websocket.Dialer{
@@ -289,7 +289,7 @@ func (client *OperatorClient) MakeRequest(request *http.Request) ([]byte, error)
 		return nil, err
 	}
 
-	request.Header.Set("Authorization", authHeader)
+	request.Header.Set("CortexAuthorization", authHeader)
 	request.Header.Set("CortexAPIVersion", consts.CortexVersion)
 
 	response, err := client.Do(request)
