@@ -300,7 +300,15 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds A
 	natPrice := aws.NATMetadatas[*clusterConfig.Region].Price
 	apiInstancePrice := aws.InstanceMetadatas[*clusterConfig.Region][*clusterConfig.InstanceType].Price
 	apiEBSPrice := aws.EBSMetadatas[*clusterConfig.Region].Price * float64(clusterConfig.InstanceVolumeSize) / 30 / 24
-	fixedPrice := eksPrice + operatorInstancePrice + operatorEBSPrice + 2*elbPrice + natPrice
+
+	var userNLBPrice float64
+	if *clusterConfig.NATGateway == clusterconfig.OneNAT {
+		userNLBPrice = natPrice
+	} else if *clusterConfig.NATGateway == clusterconfig.HighlyAvailableNAT {
+		userNLBPrice = 3 * natPrice // TODO is 3 correct?
+	}
+
+	fixedPrice := eksPrice + operatorInstancePrice + operatorEBSPrice + 2*elbPrice + userNLBPrice // TODO use NLB pricing and update count
 	totalMinPrice := fixedPrice + float64(*clusterConfig.MinInstances)*(apiInstancePrice+apiEBSPrice)
 	totalMaxPrice := fixedPrice + float64(*clusterConfig.MaxInstances)*(apiInstancePrice+apiEBSPrice)
 
@@ -315,8 +323,13 @@ func confirmInstallClusterConfig(clusterConfig *clusterconfig.Config, awsCreds A
 	rows = append(rows, []interface{}{"1 eks cluster", s.DollarsMaxPrecision(eksPrice)})
 	rows = append(rows, []interface{}{"1 20gb ebs volume for the operator", s.DollarsAndTenthsOfCents(operatorEBSPrice)})
 	rows = append(rows, []interface{}{"1 t3.medium for the operator", s.DollarsMaxPrecision(operatorInstancePrice)})
-	rows = append(rows, []interface{}{"1 nat gateway", s.DollarsMaxPrecision(natPrice)})
-	rows = append(rows, []interface{}{"2 elastic load balancers", s.DollarsMaxPrecision(elbPrice) + " each"})
+	rows = append(rows, []interface{}{"2 elastic load balancers", s.DollarsMaxPrecision(elbPrice) + " each"}) // TODO use NLB pricing and update count
+
+	if *clusterConfig.NATGateway == clusterconfig.OneNAT {
+		rows = append(rows, []interface{}{"1 nat gateway", s.DollarsMaxPrecision(natPrice)})
+	} else if *clusterConfig.NATGateway == clusterconfig.HighlyAvailableNAT {
+		rows = append(rows, []interface{}{"3 nat gateways", s.DollarsMaxPrecision(3 * natPrice)}) // TODO is 3 correct?
+	}
 
 	instanceStr := "instances"
 	volumeStr := "volumes"

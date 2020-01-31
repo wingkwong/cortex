@@ -86,6 +86,7 @@ def get_instance_metadatas(pricing):
     return instance_mapping
 
 
+# TODO switch to NLB
 def get_elb_metadata(pricing):
     for product_id, product in pricing["products"].items():
         if product.get("attributes") is None:
