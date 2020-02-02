@@ -21,6 +21,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/cortexlabs/cortex/pkg/lib/debug"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 	"github.com/cortexlabs/cortex/pkg/lib/hash"
@@ -95,6 +96,7 @@ func Deploy(w http.ResponseWriter, r *http.Request) {
 		} else {
 			results[i].API = *api
 		}
+		debug.Ppy(api) // TODO delete
 	}
 
 	respond(w, schema.DeployResponse{

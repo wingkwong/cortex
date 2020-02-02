@@ -132,12 +132,13 @@ func DeleteAPI(apiName string, keepCache bool) error {
 		func() error {
 			return deleteK8sResources(apiName)
 		},
-		func() error {
-			if keepCache {
-				return nil
-			}
-			return deleteS3Resources(apiName)
-		},
+		// TODO put back
+		// func() error {
+		// 	if keepCache {
+		// 		return nil
+		// 	}
+		// 	return deleteS3Resources(apiName)
+		// },
 	)
 
 	if err != nil {

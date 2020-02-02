@@ -13,26 +13,28 @@
     cpu: 0.2
     mem: 100M
 
-- name: another-iris-classifier
-  predictor:
-    type: python
-    path: predictor.py
-    config:
-      bucket: cortex-examples
-      key: sklearn/iris-classifier/another-model.pkl
-  tracker:
-    model_type: classification
-  compute:
-    cpu: 0.2
-    mem: 100M
+# TODO put back
 
-- name: batch-iris-classifier
-  predictor:
-    type: python
-    path: batch-predictor.py
-    config:
-      bucket: cortex-examples
-      key: sklearn/iris-classifier/model.pkl
-  compute:
-    cpu: 0.2
-    mem: 100M
+# - name: another-iris-classifier
+#   predictor:
+#     type: python
+#     path: predictor.py
+#     config:
+#       bucket: cortex-examples
+#       key: sklearn/iris-classifier/another-model.pkl
+#   tracker:
+#     model_type: classification
+#   compute:
+#     cpu: 0.2
+#     mem: 100M
+
+# - name: batch-iris-classifier
+#   predictor:
+#     type: python
+#     path: batch-predictor.py
+#     config:
+#       bucket: cortex-examples
+#       key: sklearn/iris-classifier/model.pkl
+#   compute:
+#     cpu: 0.2
+#     mem: 100M

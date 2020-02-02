@@ -6,7 +6,7 @@
 apiVersion: serving.knative.dev/v1alpha1
 kind: Service
 metadata:
-  name: yolov4
+  name: iris-classifier
   namespace: default
 spec:
   template:
@@ -14,21 +14,17 @@ spec:
       annotations:
         autoscaling.knative.dev/target: "2"
       labels:
-        apiID: d5867fd5c6df8802568fcd9aae46f7bc923459068f45bbc03795483cd2f174a
-        apiName: yolov4
+        apiID: 3a55604eac097a08c83460cecee45fad288445e4298a444f074a3d6e1bc2521
+        apiName: iris-classifier
       namespace: default
     spec:
       containers:
       - args:
         - --port=8888
-        - --spec=s3://cortex-cluster-vishal/apis/iris-classifier/3c26b59872b2823c6793f4a4233cec9876ef0f6e965650f735bd867f3ac47ba/spec.msgpack
+        - --spec=s3://cortex-cluster-vishal/apis/iris-classifier/3a55604eac097a08c83460cecee45fad288445e4298a444f074a3d6e1bc2521/spec.msgpack
         - --cache-dir=/mnt/spec
         - --project-dir=/mnt/project
         env:
-        - name: AWS_ACCESS_KEY_ID
-          value: <aws_access_key_id>
-        - name: AWS_SECRET_ACCESS_KEY
-          value: <aws_secret_access_key>
         - name: FLASK_ENV
           value: development
         - name: HOST_IP
@@ -38,13 +34,13 @@ spec:
         - name: PYTHONUNBUFFERED
           value: "TRUE"
         - name: SPEC
-          value: s3://cortex-cluster-vishal/apis/iris-classifier/3c26b59872b2823c6793f4a4233cec9876ef0f6e965650f735bd867f3ac47ba/spec.msgpack
+          value: s3://cortex-cluster-vishal/apis/iris-classifier/3a55604eac097a08c83460cecee45fad288445e4298a444f074a3d6e1bc2521/spec.msgpack
         - name: CACHE_DIR
           value: /mnt/spec
         - name: PROJECT_DIR
           value: /mnt/project
         - name: DOWNLOAD_CONFIG
-          value: ewogICJkb3dubG9hZF9hcmdzIjogWwogICAgewogICAgICAiZnJvbSI6ICJzMzovL2NvcnRleC1jbHVzdGVyLXZpc2hhbC9wcm9qZWN0cy8xNWJmODNmMzEyNWRlM2FmY2IyYmE5YmY4ZGNmYTgyOGY3Yzk1MGIwMmZhNjU5NTQzZDI0OTRmM2FkMmFiMjQuemlwIiwKICAgICAgInRvIjogIi9tbnQvcHJvamVjdCIsCiAgICAgICJ1bnppcCI6IHRydWUsCiAgICAgICJpdGVtX25hbWUiOiAidGhlIHByb2plY3QgY29kZSIsCiAgICAgICJ0Zl9tb2RlbF92ZXJzaW9uX3JlbmFtZSI6ICIiLAogICAgICAiaGlkZV9mcm9tX2xvZyI6IHRydWUsCiAgICAgICJoaWRlX3VuemlwcGluZ19sb2ciOiB0cnVlCiAgICB9CiAgXSwKICAibGFzdF9sb2ciOiAicHVsbGluZyB0aGUgcHl0aG9uIHNlcnZpbmcgaW1hZ2UiCn0=
+          value: ewogICJkb3dubG9hZF9hcmdzIjogWwogICAgewogICAgICAiZnJvbSI6ICJzMzovL2NvcnRleC1jbHVzdGVyLWRhdmlkL3Byb2plY3RzL2UxODYwNTgwMzE0YmZmMTc1MzViMDQ3NjI4MDQ1NjBhYmI5OTc3MTk5YzI5YTJiMjQxMWM5ZTM1ODVhNTliZC56aXAiLAogICAgICAidG8iOiAiL21udC9wcm9qZWN0IiwKICAgICAgInVuemlwIjogdHJ1ZSwKICAgICAgIml0ZW1fbmFtZSI6ICJ0aGUgcHJvamVjdCBjb2RlIiwKICAgICAgInRmX21vZGVsX3ZlcnNpb25fcmVuYW1lIjogIiIsCiAgICAgICJoaWRlX2Zyb21fbG9nIjogdHJ1ZSwKICAgICAgImhpZGVfdW56aXBwaW5nX2xvZyI6IHRydWUKICAgIH0KICBdLAogICJsYXN0X2xvZyI6ICJwdWxsaW5nIHRoZSBweXRob24gc2VydmluZyBpbWFnZSIKfQ==
         envFrom:
         - configMapRef:
             name: env-vars
@@ -72,7 +68,7 @@ spec:
       #   workload: "true"
       # imagePullSecrets:
       #   - name: ecr-creds
-      serviceAccountName: default
+      serviceAccountName: builder
       # tolerations:
       # - effect: NoSchedule
       #   key: workload
@@ -90,6 +86,3 @@ spec:
       #   key: node.kubernetes.io/unreachable
       #   operator: Exists
       #   tolerationSeconds: 300
-
-
-# curl $(glooctl proxy url --name knative-external-proxy)/predict -H "Host: yolov4.default.example.com" -H "Content-Type: application/json" -X POST -d @sample.json

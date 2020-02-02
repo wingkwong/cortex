@@ -254,6 +254,10 @@ func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deplo
 		resourceLimitsList["nvidia.com/gpu"] = *kresource.NewQuantity(api.Compute.GPU, kresource.DecimalSI)
 	}
 
+	// TODO delete
+	fmt.Println(pythonDownloadArgs(api))
+	fmt.Println("******************************")
+
 	return k8s.Deployment(&k8s.DeploymentSpec{
 		Name:           k8sName(api.Name),
 		Replicas:       getRequestedReplicasFromDeployment(api, prevDeployment),
