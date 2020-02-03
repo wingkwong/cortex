@@ -312,6 +312,10 @@ func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deplo
 							Value: _defaultPortStr,
 						},
 							kcore.EnvVar{
+								Name:  "DOWNLOAD_CONFIG",
+								Value: pythonDownloadArgs(api),
+							},
+							kcore.EnvVar{
 								Name:  "PYTHONUNBUFFERED",
 								Value: "TRUE",
 							},
