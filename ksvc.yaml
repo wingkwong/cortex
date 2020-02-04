@@ -64,25 +64,6 @@ spec:
           requests:
             cpu: "0.2"
             memory: "100m"
-      # nodeSelector:
-      #   workload: "true"
       # imagePullSecrets:
       #   - name: ecr-creds
       serviceAccountName: default
-      # tolerations:
-      # - effect: NoSchedule
-      #   key: workload
-      #   operator: Equal
-      #   value: "true"
-      # - effect: NoSchedule
-      #   key: nvidia.com/gpu
-      #   operator: Equal
-      #   value: "true"
-      # - effect: NoExecute
-      #   key: node.kubernetes.io/not-ready
-      #   operator: Exists
-      #   tolerationSeconds: 300
-      # - effect: NoExecute
-      #   key: node.kubernetes.io/unreachable
-      #   operator: Exists
-      #   tolerationSeconds: 300
