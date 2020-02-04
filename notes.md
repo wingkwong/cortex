@@ -40,3 +40,4 @@
   * If not:
     * Option 1: shared private load balancer for operator and APIs, API Gateway required for all
     * Option 2: private load balancer for operator, public or private load balancer for APIs, API Gateway required for operator
+* Investigate 1 second latency on API Gateway
