@@ -68,7 +68,7 @@ spec:
       #   workload: "true"
       # imagePullSecrets:
       #   - name: ecr-creds
-      serviceAccountName: builder
+      serviceAccountName: default
       # tolerations:
       # - effect: NoSchedule
       #   key: workload
