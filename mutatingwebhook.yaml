@@ -15,4 +15,3 @@ webhooks:
     namespaceSelector:
       matchLabels:
         admission-webhook-example: enabled
-
