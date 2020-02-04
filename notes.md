@@ -33,3 +33,10 @@
 * logging
 * should we move admission contoller to it's own deployment?
 * don't require host header for requests
+
+## External Networking
+
+* Can we have a load balancer per API?
+  * If not:
+    * Option 1: shared private load balancer for operator and APIs, API Gateway required for all
+    * Option 2: private load balancer for operator, public or private load balancer for APIs, API Gateway required for operator
