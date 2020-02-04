@@ -53,5 +53,13 @@ func main() {
 	router.HandleFunc("/logs/{apiName}", endpoints.ReadLogs)
 
 	log.Print("Running on port " + _operatorPortStr)
-	log.Fatal(http.ListenAndServe(":"+_operatorPortStr, router))
+
+	go func() {
+		log.Fatal(http.ListenAndServe(":"+_operatorPortStr, router))
+	}()
+	routerHTTPS := mux.NewRouter()
+	routerHTTPS.HandleFunc("/mutate", endpoints.Mutate).Methods("POST")
+
+	log.Print("Running on port " + "8889")
+	log.Fatal(http.ListenAndServeTLS(":"+"8889", "/home/ubuntu/.cortex/certs/server-cert.pem", "/home/ubuntu/.cortex/certs/server-key.pem", routerHTTPS))
 }
