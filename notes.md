@@ -18,7 +18,6 @@
 ## Questions
 
 * why are pods stuck in terminating for a while?
-* should we move admission contoller to it's own deployment?
 * image pull credentials from ecr
 * check if knative automatically pulls images on new nodes before pods are scheduled, or if they have any other image-related knobs
 * rolling updates
@@ -26,9 +25,11 @@
   * can we control max surge / unavailable?
     * dev update when only one replica fits on a node
     * e.g. requested 100 replicas, max nodes was 50, can you do an update after 50 replicas are running?
-* logging
 * metrics (response codes, e2e latency)
 
 ## TODO
 
 * get cx deploy working
+* logging
+* should we move admission contoller to it's own deployment?
+* don't require host header for requests
