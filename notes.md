@@ -28,3 +28,7 @@
     * e.g. requested 100 replicas, max nodes was 50, can you do an update after 50 replicas are running?
 * logging
 * metrics (response codes, e2e latency)
+
+## TODO
+
+* get cx deploy working
