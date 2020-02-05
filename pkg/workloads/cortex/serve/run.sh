@@ -34,4 +34,4 @@ export PORT="${MY_PORT:-8888}"
 
 export MY_PORT="8888"
 
-gunicorn -b 0.0.0.0:$PORT --access-logfile=- --pythonpath=$PYTHONPATH --chdir /mnt/project --log-level debug cortex.serve.wsgi:app
+exec gunicorn -b 0.0.0.0:$PORT --access-logfile=- --pythonpath=$PYTHONPATH --chdir /mnt/project --log-level debug cortex.serve.wsgi:app
