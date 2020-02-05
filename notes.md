@@ -17,7 +17,6 @@
 
 ## Questions
 
-* why are pods stuck in terminating for a while?
 * image pull credentials from ecr
 * check if knative automatically pulls images on new nodes before pods are scheduled, or if they have any other image-related knobs
 * rolling updates
@@ -26,6 +25,7 @@
     * dev update when only one replica fits on a node
     * e.g. requested 100 replicas, max nodes was 50, can you do an update after 50 replicas are running?
 * metrics (response codes, e2e latency)
+* when deploying a knative service without any worker nodes, the time to allocate a new worker node, download the image and get the pod running takes a lot longer than some timeout, knative marks the revision as failed, deletes the pod and asks to redeploy with a new revission
 
 ## TODO
 
