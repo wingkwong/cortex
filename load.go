@@ -73,6 +73,7 @@ func makeRequestLoop(url string, jsonBytes []byte) {
 
 		if response.StatusCode != 200 {
 			fmt.Print(response.StatusCode)
+			fmt.Print(" ")
 			continue
 		}
 
