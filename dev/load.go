@@ -12,7 +12,7 @@ import (
 	"github.com/cortexlabs/cortex/pkg/lib/files"
 )
 
-const _numConcurrent = 100
+const _numConcurrent = 5
 const _numRequestsPerThread = -1
 const _requestDelay = 0 * time.Second
 
@@ -77,7 +77,7 @@ func makeRequestLoop(url string, jsonBytes []byte) {
 			continue
 		}
 
-		fmt.Print(".")
+		// fmt.Print(".")
 
 		if _requestDelay != 0 {
 			time.Sleep(_requestDelay)
