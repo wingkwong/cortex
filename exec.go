@@ -31,7 +31,7 @@ func getNumConnections(k *k8s.Client) {
 		return
 	}
 
-	out, err := k.Exec(pods[0].Name, "api", []string{"/bin/sh", "-c", "ss --no-header | wc -l"})
+	out, err := k.Exec(pods[0].Name, "api", []string{"/bin/sh", "-c", "ss --no-header | grep ':8888 ' | wc -l"})
 	if err != nil {
 		exit(err)
 	}

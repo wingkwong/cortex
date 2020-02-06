@@ -15,7 +15,7 @@ def main():
 
     while True:
         out = subprocess.run(
-            "ss --no-header | wc -l",
+            "ss --no-header | grep ':8888 ' | wc -l",
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             shell=True,
