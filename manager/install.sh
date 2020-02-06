@@ -343,16 +343,16 @@ function validate_cortex() {
       api_load_balancer="ready"
     fi
 
-    if [ "$operator_endpoint" = "" ]; then
-      operator_endpoint=$(kubectl -n=istio-system get service ingressgateway-operator -o json | tr -d '[:space:]' | sed 's/.*{\"hostname\":\"\(.*\)\".*/\1/')
-    fi
+    # if [ "$operator_endpoint" = "" ]; then
+    #   operator_endpoint=$(kubectl -n=istio-system get service ingressgateway-operator -o json | tr -d '[:space:]' | sed 's/.*{\"hostname\":\"\(.*\)\".*/\1/')
+    # fi
 
-    if [ "$operator_endpoint_reachable" != "ready" ]; then
-      if ! curl $operator_endpoint >/dev/null 2>&1; then
-        continue
-      fi
-      operator_endpoint_reachable="ready"
-    fi
+    # if [ "$operator_endpoint_reachable" != "ready" ]; then
+    #   if ! curl $operator_endpoint >/dev/null 2>&1; then
+    #     continue
+    #   fi
+    #   operator_endpoint_reachable="ready"
+    # fi
 
     # if [ "$operator_pod_ready_cycles" == "0" ] && [ "$operator_pod_name" != "" ]; then
     #   num_restart=$(kubectl -n=default get "$operator_pod_name" -o jsonpath='{.status.containerStatuses[0].restartCount}')
