@@ -343,6 +343,15 @@ func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deplo
 							{ContainerPort: _defaultPortInt32},
 						},
 					},
+					{
+						Name:            "ss",
+						Image:           servingImage,
+						ImagePullPolicy: kcore.PullAlways,
+						Command:         []string{"/bin/sh", "-c", "/usr/bin/python3.6 /src/ss.py"},
+						Env:             getEnvVars(api),
+						EnvFrom:         _baseEnvVars,
+						VolumeMounts:    _defaultVolumeMounts,
+					},
 				},
 				NodeSelector: map[string]string{
 					"workload": "true",
