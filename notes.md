@@ -15,17 +15,32 @@
 * kubectl label namespace default admission-webhook-example=enabled
 * kubectl apply -f mutatingwebhook.yaml
 
+## Resources
+
+* https://github.com/knative/serving/tree/v0.11.1/pkg/apis/serving/v1
+* https://github.com/knative/serving/blob/v0.11.1/pkg/apis/autoscaling/register.go
+
 ## Questions
 
 * image pull credentials from ecr
+  * https://github.com/knative/serving/issues/1996
+  * https://stackoverflow.com/questions/55971277/unable-to-access-private-registry-in-knative
+  * https://github.com/knative/build-templates/tree/master/ecr_helper
+  * https://github.com/knative/serving/pull/4084
 * check if knative automatically pulls images on new nodes before pods are scheduled, or if they have any other image-related knobs
 * rolling updates
   * num replicas don't decrease
   * can we control max surge / unavailable?
     * dev update when only one replica fits on a node
     * e.g. requested 100 replicas, max nodes was 50, can you do an update after 50 replicas are running?
+  * does scaling up/down by updating autoscaling.knative.dev/minScale cause a full redeploy?
+    * min/max diff: https://github.com/knative/serving/pull/1980/files
+    * min/max PR in KF Serving: https://github.com/kubeflow/kfserving/pull/85/files
 * metrics (response codes, e2e latency)
 * when deploying a knative service without any worker nodes, the time to allocate a new worker node, download the image and get the pod running takes a lot longer than some timeout, knative marks the revision as failed, deletes the pod and asks to redeploy with a new revission
+* do errored pods get cleaned up?
+* do previous deployments get cleaned up?
+* some pods get killed right after starting
 
 ## TODO
 
