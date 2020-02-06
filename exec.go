@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
+	"time"
 
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 )
@@ -13,18 +15,29 @@ func main() {
 		exit(err)
 	}
 
-	// pod, err := k.GetPod("api-iris-classifier-95d88c4b7-478pl")
-	// if err != nil {
-	// 	exit(err)
-	// }
+	for true {
+		getNumConnections(k)
+		time.Sleep(2 * time.Second)
+	}
+}
 
-	// out, err := k.Exec("api-iris-classifier-95d88c4b7-478pl", "api", []string{"/bin/sh", "-c", "echo hi"})
-	// out, err := k.Exec("api-iris-classifier-95d88c4b7-478pl", "api", []string{"/bin/sh", "-c", "echo stderr >&2 && echo stdout && echo stderr >&2"})
-	out, err := k.Exec("api-iris-classifier-95d88c4b7-478pl", "api", []string{"ss"})
+func getNumConnections(k *k8s.Client) {
+	pods, err := k.ListPodsWithLabelKeys("apiName")
 	if err != nil {
 		exit(err)
 	}
-	fmt.Println(out)
+
+	if len(pods) == 0 {
+		return
+	}
+
+	out, err := k.Exec(pods[0].Name, "api", []string{"ss"})
+	if err != nil {
+		exit(err)
+	}
+
+	// fmt.Println(out)
+	fmt.Printf("NUM CONNECTIONS: %d\n", strings.Count(out, "tcp"))
 }
 
 func exit(err error) {
