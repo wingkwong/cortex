@@ -187,11 +187,11 @@ function main() {
     echo "✓"
   fi
 
-  echo -n "￮ starting operator "
-  kubectl -n=default delete --ignore-not-found=true --grace-period=10 deployment operator >/dev/null 2>&1
-  until [ "$(kubectl -n=default get pods -l workloadID=operator -o json | jq -j '.items | length')" -eq "0" ]; do echo -n "."; sleep 2; done
-  envsubst < manifests/operator.yaml | kubectl apply -f - >/dev/null
-  echo "✓"
+  # echo -n "￮ starting operator "
+  # kubectl -n=default delete --ignore-not-found=true --grace-period=10 deployment operator >/dev/null 2>&1
+  # until [ "$(kubectl -n=default get pods -l workloadID=operator -o json | jq -j '.items | length')" -eq "0" ]; do echo -n "."; sleep 2; done
+  # envsubst < manifests/operator.yaml | kubectl apply -f - >/dev/null
+  # echo "✓"
 
   validate_cortex
 
@@ -354,19 +354,19 @@ function validate_cortex() {
       operator_endpoint_reachable="ready"
     fi
 
-    if [ "$operator_pod_ready_cycles" == "0" ] && [ "$operator_pod_name" != "" ]; then
-      num_restart=$(kubectl -n=default get "$operator_pod_name" -o jsonpath='{.status.containerStatuses[0].restartCount}')
-      if [[ $num_restart -ge 2 ]]; then
-        echo -e "\n\nan error occurred when starting the cortex operator. View the logs with:"
-        echo "  kubectl logs $operator_pod_name"
-        exit 1
-      fi
-      continue
-    fi
+    # if [ "$operator_pod_ready_cycles" == "0" ] && [ "$operator_pod_name" != "" ]; then
+    #   num_restart=$(kubectl -n=default get "$operator_pod_name" -o jsonpath='{.status.containerStatuses[0].restartCount}')
+    #   if [[ $num_restart -ge 2 ]]; then
+    #     echo -e "\n\nan error occurred when starting the cortex operator. View the logs with:"
+    #     echo "  kubectl logs $operator_pod_name"
+    #     exit 1
+    #   fi
+    #   continue
+    # fi
 
-    if [[ $operator_pod_ready_cycles -lt 3 ]]; then
-      continue
-    fi
+    # if [[ $operator_pod_ready_cycles -lt 3 ]]; then
+    #   continue
+    # fi
 
     break
   done
