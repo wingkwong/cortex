@@ -15,15 +15,14 @@ def main():
 
     while True:
         out = subprocess.run(
-            "ss",
+            "ss --no-header | wc -l",
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
-            # shell=True,
+            shell=True,
             universal_newlines=True,
         )
 
-        # print(out.stdout, flush=True)
-        print("NUM CONNECTIONS: {}".format(out.stdout.count("tcp")), flush=True)
+        print("NUM CONNECTIONS: {}".format(out.stdout.strip()), flush=True)
 
         time.sleep(2)
 
