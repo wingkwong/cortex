@@ -16,7 +16,17 @@
 
 set -e
 
+# If the container restarted, ensure that it is not perceived as ready
+rm -rf /mnt/api_readiness.txt
+
+# Allow for the liveness check to pass until the API is running
+echo "9999999999" > /mnt/api_liveness.txt
+
 export PYTHONPATH=$PYTHONPATH:$PYTHON_PATH
+
+sysctl -w net.core.somaxconn=$CORTEX_SO_MAX_CONN >/dev/null
+sysctl -w net.ipv4.ip_local_port_range="15000 64000" >/dev/null
+sysctl -w net.ipv4.tcp_fin_timeout=30 >/dev/null
 
 if [ -f "/mnt/project/requirements.txt" ]; then
     pip --no-cache-dir install -r /mnt/project/requirements.txt
@@ -24,4 +34,9 @@ fi
 
 cd /mnt/project
 
-/usr/bin/python3.6 /src/cortex/serve/serve.py "$@"
+# Ensure predictor print() statements are always flushed
+export PYTHONUNBUFFERED=TRUE
+
+mkdir -p /mnt/requests
+
+/usr/bin/python3.6 /src/cortex/serve/start_uvicorn.py

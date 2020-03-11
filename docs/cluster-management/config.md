@@ -4,6 +4,7 @@ _WARNING: you are on the master branch, please refer to the docs on the branch t
 
 The Cortex cluster may be configured by providing a configuration file to `cortex cluster up` or `cortex cluster update` via the `--config` flag (e.g. `cortex cluster up --config=cluster.yaml`). Below is the schema for the cluster configuration file, with default values shown (unless otherwise specified):
 
+<!-- CORTEX_VERSION_MINOR -->
 <!-- CORTEX_VERSION_BRANCH_STABLE -->
 
 ```yaml
@@ -59,6 +60,7 @@ image_onnx_serve_gpu: cortexlabs/onnx-serve-gpu:master
 image_operator: cortexlabs/operator:master
 image_manager: cortexlabs/manager:master
 image_downloader: cortexlabs/downloader:master
+image_request_monitor: cortexlabs/request-monitor:master
 image_cluster_autoscaler: cortexlabs/cluster-autoscaler:master
 image_metrics_server: cortexlabs/metrics-server:master
 image_nvidia: cortexlabs/nvidia:master

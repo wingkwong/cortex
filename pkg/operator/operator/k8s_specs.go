@@ -19,11 +19,11 @@ package operator
 import (
 	"encoding/base64"
 	"fmt"
+	"math"
 	"path"
 	"strings"
 
 	"github.com/cortexlabs/cortex/pkg/lib/aws"
-	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/json"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
 	"github.com/cortexlabs/cortex/pkg/lib/pointer"
@@ -32,7 +32,6 @@ import (
 	"github.com/cortexlabs/cortex/pkg/types/spec"
 	"github.com/cortexlabs/cortex/pkg/types/userconfig"
 	kapps "k8s.io/api/apps/v1"
-	kautoscaling "k8s.io/api/autoscaling/v2beta2"
 	kcore "k8s.io/api/core/v1"
 	kresource "k8s.io/apimachinery/pkg/api/resource"
 	kunstructured "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -49,6 +48,15 @@ const (
 	_downloaderLastLog                     = "pulling the %s serving image"
 	_defaultPortInt32, _defaultPortStr     = int32(8888), "8888"
 	_tfServingPortInt32, _tfServingPortStr = int32(9000), "9000"
+	_requestMonitorReadinessFile           = "/request_monitor_ready.txt"
+	_apiReadinessFile                      = "/mnt/api_readiness.txt"
+	_apiLivenessFile                       = "/mnt/api_liveness.txt"
+	_apiLivenessStalePeriod                = 7 // seconds (there is a 2-second buffer to be safe)
+)
+
+var (
+	_requestMonitorCPURequest = kresource.MustParse("10m")
+	_requestMonitorMemRequest = kresource.MustParse("10Mi")
 )
 
 type downloadContainerConfig struct {
@@ -84,12 +92,16 @@ func tfAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploymen
 	tfServingResourceList := kcore.ResourceList{}
 	tfServingLimitsList := kcore.ResourceList{}
 
-	q1, q2 := api.Compute.CPU.SplitInTwo()
+	userPodCPURequest := api.Compute.CPU.Quantity.Copy()
+	userPodCPURequest.Sub(_requestMonitorCPURequest)
+	q1, q2 := k8s.SplitInTwo(userPodCPURequest)
 	apiResourceList[kcore.ResourceCPU] = *q1
 	tfServingResourceList[kcore.ResourceCPU] = *q2
 
 	if api.Compute.Mem != nil {
-		q1, q2 := api.Compute.Mem.SplitInTwo()
+		userPodMemRequest := api.Compute.Mem.Quantity.Copy()
+		userPodMemRequest.Sub(_requestMonitorMemRequest)
+		q1, q2 := k8s.SplitInTwo(userPodMemRequest)
 		apiResourceList[kcore.ResourceMemory] = *q1
 		tfServingResourceList[kcore.ResourceMemory] = *q2
 	}
@@ -104,17 +116,14 @@ func tfAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploymen
 	return k8s.Deployment(&k8s.DeploymentSpec{
 		Name:           k8sName(api.Name),
 		Replicas:       getRequestedReplicasFromDeployment(api, prevDeployment),
-		MaxSurge:       pointer.String(api.Compute.MaxSurge),
-		MaxUnavailable: pointer.String(api.Compute.MaxUnavailable),
+		MaxSurge:       pointer.String(api.UpdateStrategy.MaxSurge),
+		MaxUnavailable: pointer.String(api.UpdateStrategy.MaxUnavailable),
 		Labels: map[string]string{
 			"apiName":      api.Name,
 			"apiID":        api.ID,
 			"deploymentID": api.DeploymentID,
-			// these labels are important to determine if the deployment was changed in any way, since they don't appear in the deployment spec
-			"minReplicas":          s.Int32(api.Compute.MinReplicas),
-			"maxReplicas":          s.Int32(api.Compute.MaxReplicas),
-			"targetCPUUtilization": s.Int32(api.Compute.TargetCPUUtilization),
 		},
+		Annotations: api.Autoscaling.ToK8sAnnotations(),
 		Selector: map[string]string{
 			"apiName": api.Name,
 		},
@@ -144,25 +153,32 @@ func tfAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploymen
 						Name:            _apiContainerName,
 						Image:           config.Cluster.ImageTFAPI,
 						ImagePullPolicy: kcore.PullAlways,
-						Args: []string{
-							"--port=" + _defaultPortStr,
-							"--tf-serve-port=" + _tfServingPortStr,
-							"--spec=" + aws.S3Path(*config.Cluster.Bucket, api.Key),
-							"--cache-dir=" + _specCacheDir,
-							"--model-dir=" + path.Join(_emptyDirMountPath, "model"),
-							"--project-dir=" + path.Join(_emptyDirMountPath, "project"),
-						},
-						Env:            getEnvVars(api),
+						Env: append(
+							getEnvVars(api),
+							kcore.EnvVar{
+								Name:  "CORTEX_MODEL_DIR",
+								Value: path.Join(_emptyDirMountPath, "model"),
+							},
+							kcore.EnvVar{
+								Name:  "CORTEX_TF_SERVING_PORT",
+								Value: _tfServingPortStr,
+							},
+						),
 						EnvFrom:        _baseEnvVars,
 						VolumeMounts:   _defaultVolumeMounts,
-						ReadinessProbe: _apiReadinessProbe,
+						ReadinessProbe: fileExistsProbe(_apiReadinessFile),
+						LivenessProbe:  _apiReadinessProbe,
 						Resources: kcore.ResourceRequirements{
 							Requests: apiResourceList,
 						},
 						Ports: []kcore.ContainerPort{
 							{ContainerPort: _defaultPortInt32},
 						},
+						SecurityContext: &kcore.SecurityContext{
+							Privileged: pointer.Bool(true),
+						},
 					},
+					*requestMonitorContainer(api),
 					{
 						Name:            _tfServingContainerName,
 						Image:           servingImage,
@@ -242,10 +258,15 @@ func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deplo
 	servingImage := config.Cluster.ImagePythonServe
 	resourceList := kcore.ResourceList{}
 	resourceLimitsList := kcore.ResourceList{}
-	resourceList[kcore.ResourceCPU] = api.Compute.CPU.Quantity
+
+	userPodCPURequest := api.Compute.CPU.Quantity.Copy()
+	userPodCPURequest.Sub(_requestMonitorCPURequest)
+	resourceList[kcore.ResourceCPU] = *userPodCPURequest
 
 	if api.Compute.Mem != nil {
-		resourceList[kcore.ResourceMemory] = api.Compute.Mem.Quantity
+		userPodMemRequest := api.Compute.Mem.Quantity.Copy()
+		userPodMemRequest.Sub(_requestMonitorMemRequest)
+		resourceList[kcore.ResourceMemory] = *userPodMemRequest
 	}
 
 	if api.Compute.GPU > 0 {
@@ -257,17 +278,14 @@ func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deplo
 	return k8s.Deployment(&k8s.DeploymentSpec{
 		Name:           k8sName(api.Name),
 		Replicas:       getRequestedReplicasFromDeployment(api, prevDeployment),
-		MaxSurge:       pointer.String(api.Compute.MaxSurge),
-		MaxUnavailable: pointer.String(api.Compute.MaxUnavailable),
+		MaxSurge:       pointer.String(api.UpdateStrategy.MaxSurge),
+		MaxUnavailable: pointer.String(api.UpdateStrategy.MaxUnavailable),
 		Labels: map[string]string{
 			"apiName":      api.Name,
 			"apiID":        api.ID,
 			"deploymentID": api.DeploymentID,
-			// these labels allow us to determine if the deployment was changed in any way
-			"minReplicas":          s.Int32(api.Compute.MinReplicas),
-			"maxReplicas":          s.Int32(api.Compute.MaxReplicas),
-			"targetCPUUtilization": s.Int32(api.Compute.TargetCPUUtilization),
 		},
+		Annotations: api.Autoscaling.ToK8sAnnotations(),
 		Selector: map[string]string{
 			"apiName": api.Name,
 		},
@@ -297,16 +315,11 @@ func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deplo
 						Name:            _apiContainerName,
 						Image:           servingImage,
 						ImagePullPolicy: kcore.PullAlways,
-						Args: []string{
-							"--port=" + _defaultPortStr,
-							"--spec=" + aws.S3Path(*config.Cluster.Bucket, api.Key),
-							"--cache-dir=" + _specCacheDir,
-							"--project-dir=" + path.Join(_emptyDirMountPath, "project"),
-						},
-						Env:            getEnvVars(api),
-						EnvFrom:        _baseEnvVars,
-						VolumeMounts:   _defaultVolumeMounts,
-						ReadinessProbe: _apiReadinessProbe,
+						Env:             getEnvVars(api),
+						EnvFrom:         _baseEnvVars,
+						VolumeMounts:    _defaultVolumeMounts,
+						ReadinessProbe:  fileExistsProbe(_apiReadinessFile),
+						LivenessProbe:   _apiReadinessProbe,
 						Resources: kcore.ResourceRequirements{
 							Requests: resourceList,
 							Limits:   resourceLimitsList,
@@ -314,7 +327,11 @@ func pythonAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deplo
 						Ports: []kcore.ContainerPort{
 							{ContainerPort: _defaultPortInt32},
 						},
+						SecurityContext: &kcore.SecurityContext{
+							Privileged: pointer.Bool(true),
+						},
 					},
+					*requestMonitorContainer(api),
 				},
 				NodeSelector: map[string]string{
 					"workload": "true",
@@ -350,10 +367,15 @@ func onnxAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploym
 	servingImage := config.Cluster.ImageONNXServe
 	resourceList := kcore.ResourceList{}
 	resourceLimitsList := kcore.ResourceList{}
-	resourceList[kcore.ResourceCPU] = api.Compute.CPU.Quantity
+
+	userPodCPURequest := api.Compute.CPU.Quantity.Copy()
+	userPodCPURequest.Sub(_requestMonitorCPURequest)
+	resourceList[kcore.ResourceCPU] = *userPodCPURequest
 
 	if api.Compute.Mem != nil {
-		resourceList[kcore.ResourceMemory] = api.Compute.Mem.Quantity
+		userPodMemRequest := api.Compute.Mem.Quantity.Copy()
+		userPodMemRequest.Sub(_requestMonitorMemRequest)
+		resourceList[kcore.ResourceMemory] = *userPodMemRequest
 	}
 
 	if api.Compute.GPU > 0 {
@@ -365,17 +387,14 @@ func onnxAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploym
 	return k8s.Deployment(&k8s.DeploymentSpec{
 		Name:           k8sName(api.Name),
 		Replicas:       getRequestedReplicasFromDeployment(api, prevDeployment),
-		MaxSurge:       pointer.String(api.Compute.MaxSurge),
-		MaxUnavailable: pointer.String(api.Compute.MaxUnavailable),
+		MaxSurge:       pointer.String(api.UpdateStrategy.MaxSurge),
+		MaxUnavailable: pointer.String(api.UpdateStrategy.MaxUnavailable),
 		Labels: map[string]string{
 			"apiName":      api.Name,
 			"apiID":        api.ID,
 			"deploymentID": api.DeploymentID,
-			// these labels are important to determine if the deployment was changed in any way, since they don't appear in the deployment spec
-			"minReplicas":          s.Int32(api.Compute.MinReplicas),
-			"maxReplicas":          s.Int32(api.Compute.MaxReplicas),
-			"targetCPUUtilization": s.Int32(api.Compute.TargetCPUUtilization),
 		},
+		Annotations: api.Autoscaling.ToK8sAnnotations(),
 		Selector: map[string]string{
 			"apiName": api.Name,
 		},
@@ -404,17 +423,17 @@ func onnxAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploym
 						Name:            _apiContainerName,
 						Image:           servingImage,
 						ImagePullPolicy: kcore.PullAlways,
-						Args: []string{
-							"--port=" + _defaultPortStr,
-							"--spec=" + aws.S3Path(*config.Cluster.Bucket, api.Key),
-							"--cache-dir=" + _specCacheDir,
-							"--model-dir=" + path.Join(_emptyDirMountPath, "model"),
-							"--project-dir=" + path.Join(_emptyDirMountPath, "project"),
-						},
-						Env:            getEnvVars(api),
+						Env: append(
+							getEnvVars(api),
+							kcore.EnvVar{
+								Name:  "CORTEX_MODEL_DIR",
+								Value: path.Join(_emptyDirMountPath, "model"),
+							},
+						),
 						EnvFrom:        _baseEnvVars,
 						VolumeMounts:   _defaultVolumeMounts,
-						ReadinessProbe: _apiReadinessProbe,
+						ReadinessProbe: fileExistsProbe(_apiReadinessFile),
+						LivenessProbe:  _apiReadinessProbe,
 						Resources: kcore.ResourceRequirements{
 							Requests: resourceList,
 							Limits:   resourceLimitsList,
@@ -422,7 +441,11 @@ func onnxAPISpec(api *spec.API, prevDeployment *kapps.Deployment) *kapps.Deploym
 						Ports: []kcore.ContainerPort{
 							{ContainerPort: _defaultPortInt32},
 						},
+						SecurityContext: &kcore.SecurityContext{
+							Privileged: pointer.Bool(true),
+						},
 					},
+					*requestMonitorContainer(api),
 				},
 				NodeSelector: map[string]string{
 					"workload": "true",
@@ -487,50 +510,21 @@ func virtualServiceSpec(api *spec.API) *kunstructured.Unstructured {
 	})
 }
 
-func hpaSpec(deployment *kapps.Deployment) (*kautoscaling.HorizontalPodAutoscaler, error) {
-	minReplicas, ok := s.ParseInt32(deployment.Labels["minReplicas"])
-	if !ok {
-		return nil, errors.New("unable to parse minReplicas from deployment") // unexpected
-	}
-	maxReplicas, ok := s.ParseInt32(deployment.Labels["maxReplicas"])
-	if !ok {
-		return nil, errors.New("unable to parse maxReplicas from deployment") // unexpected
-	}
-	targetCPUUtilization, ok := s.ParseInt32(deployment.Labels["targetCPUUtilization"])
-	if !ok {
-		return nil, errors.New("unable to parse targetCPUUtilization from deployment") // unexpected
-	}
-
-	return k8s.HPA(&k8s.HPASpec{
-		DeploymentName:       k8sName(deployment.Labels["apiName"]),
-		MinReplicas:          minReplicas,
-		MaxReplicas:          maxReplicas,
-		TargetCPUUtilization: targetCPUUtilization,
-		Labels: map[string]string{
-			"apiName": deployment.Labels["apiName"],
-		},
-	}), nil
-}
-
 func getRequestedReplicasFromDeployment(api *spec.API, deployment *kapps.Deployment) int32 {
-	var k8sRequested int32
-	if deployment != nil && deployment.Spec.Replicas != nil {
-		k8sRequested = *deployment.Spec.Replicas
-	}
-	return getRequestedReplicas(api, k8sRequested)
-}
+	requestedReplicas := api.Autoscaling.InitReplicas
 
-func getRequestedReplicas(api *spec.API, k8sRequested int32) int32 {
-	requestedReplicas := api.Compute.InitReplicas
-	if k8sRequested > 0 {
-		requestedReplicas = k8sRequested
+	if deployment != nil && deployment.Spec.Replicas != nil && *deployment.Spec.Replicas > 0 {
+		requestedReplicas = *deployment.Spec.Replicas
 	}
-	if requestedReplicas < api.Compute.MinReplicas {
-		requestedReplicas = api.Compute.MinReplicas
+
+	if requestedReplicas < api.Autoscaling.MinReplicas {
+		requestedReplicas = api.Autoscaling.MinReplicas
 	}
-	if requestedReplicas > api.Compute.MaxReplicas {
-		requestedReplicas = api.Compute.MaxReplicas
+
+	if requestedReplicas > api.Autoscaling.MaxReplicas {
+		requestedReplicas = api.Autoscaling.MaxReplicas
 	}
+
 	return requestedReplicas
 }
 
@@ -553,6 +547,43 @@ func getEnvVars(api *spec.API) []kcore.EnvVar {
 				},
 			},
 		},
+		kcore.EnvVar{
+			Name:  "CORTEX_WORKERS_PER_REPLICA",
+			Value: s.Int32(api.Autoscaling.WorkersPerReplica),
+		},
+		kcore.EnvVar{
+			Name:  "CORTEX_THREADS_PER_WORKER",
+			Value: s.Int32(api.Autoscaling.ThreadsPerWorker),
+		},
+		kcore.EnvVar{
+			Name:  "CORTEX_MAX_REPLICA_CONCURRENCY",
+			Value: s.Int64(api.Autoscaling.MaxReplicaConcurrency),
+		},
+		kcore.EnvVar{
+			Name: "CORTEX_MAX_WORKER_CONCURRENCY",
+			// add 1 because it was required to achieve the target concurrency for 1 worker, 1 thread
+			Value: s.Int64(1 + int64(math.Round(float64(api.Autoscaling.MaxReplicaConcurrency)/float64(api.Autoscaling.WorkersPerReplica)))),
+		},
+		kcore.EnvVar{
+			Name:  "CORTEX_SO_MAX_CONN",
+			Value: s.Int64(api.Autoscaling.MaxReplicaConcurrency + 100), // add a buffer to be safe
+		},
+		kcore.EnvVar{
+			Name:  "CORTEX_SERVING_PORT",
+			Value: _defaultPortStr,
+		},
+		kcore.EnvVar{
+			Name:  "CORTEX_API_SPEC",
+			Value: aws.S3Path(*config.Cluster.Bucket, api.Key),
+		},
+		kcore.EnvVar{
+			Name:  "CORTEX_CACHE_DIR",
+			Value: _specCacheDir,
+		},
+		kcore.EnvVar{
+			Name:  "CORTEX_PROJECT_DIR",
+			Value: path.Join(_emptyDirMountPath, "project"),
+		},
 	)
 
 	if api.Predictor.PythonPath != nil {
@@ -565,6 +596,24 @@ func getEnvVars(api *spec.API) []kcore.EnvVar {
 	return envVars
 }
 
+func requestMonitorContainer(api *spec.API) *kcore.Container {
+	return &kcore.Container{
+		Name:            "request-monitor",
+		Image:           config.Cluster.ImageRequestMonitor,
+		ImagePullPolicy: kcore.PullAlways,
+		Args:            []string{api.Name, config.Cluster.LogGroup},
+		EnvFrom:         _baseEnvVars,
+		VolumeMounts:    _defaultVolumeMounts,
+		ReadinessProbe:  fileExistsProbe(_requestMonitorReadinessFile),
+		Resources: kcore.ResourceRequirements{
+			Requests: kcore.ResourceList{
+				kcore.ResourceCPU:    _requestMonitorCPURequest,
+				kcore.ResourceMemory: _requestMonitorMemRequest,
+			},
+		},
+	}
+}
+
 func k8sName(apiName string) string {
 	return "api-" + apiName
 }
@@ -574,12 +623,27 @@ var _apiReadinessProbe = &kcore.Probe{
 	TimeoutSeconds:      5,
 	PeriodSeconds:       5,
 	SuccessThreshold:    1,
-	FailureThreshold:    2,
+	FailureThreshold:    3,
 	Handler: kcore.Handler{
 		Exec: &kcore.ExecAction{
-			Command: []string{"/bin/bash", "-c", "/bin/ps aux | grep \"serve/run.sh\" | grep -v \"grep\" && test -f /health_check.txt"},
+			Command: []string{"/bin/bash", "-c", `now="$(date +%s)" && min="$(($now-` + s.Int(_apiLivenessStalePeriod) + `))" && test "$(cat ` + _apiLivenessFile + ` | tr -d '[:space:]')" -ge "$min"`},
 		},
 	},
+}
+
+func fileExistsProbe(fileName string) *kcore.Probe {
+	return &kcore.Probe{
+		InitialDelaySeconds: 3,
+		TimeoutSeconds:      5,
+		PeriodSeconds:       5,
+		SuccessThreshold:    1,
+		FailureThreshold:    1,
+		Handler: kcore.Handler{
+			Exec: &kcore.ExecAction{
+				Command: []string{"/bin/bash", "-c", fmt.Sprintf("test -f %s", fileName)},
+			},
+		},
+	}
 }
 
 var _tolerations = []kcore.Toleration{

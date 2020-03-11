@@ -17,16 +17,13 @@ limitations under the License.
 package operator
 
 import (
-	"time"
+	"strings"
 
+	"github.com/cortexlabs/cortex/pkg/lib/aws"
 	"github.com/cortexlabs/cortex/pkg/lib/errors"
 	"github.com/cortexlabs/cortex/pkg/lib/k8s"
-	"github.com/cortexlabs/cortex/pkg/lib/parallel"
 	"github.com/cortexlabs/cortex/pkg/lib/telemetry"
 	"github.com/cortexlabs/cortex/pkg/operator/config"
-	kapps "k8s.io/api/apps/v1"
-	kautoscaling "k8s.io/api/autoscaling/v2beta2"
-	kcore "k8s.io/api/core/v1"
 	kmeta "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -54,75 +51,11 @@ func deleteEvictedPods() error {
 	return nil
 }
 
-func updateHPAs() error {
-	var deployments []kapps.Deployment
-	var hpas []kautoscaling.HorizontalPodAutoscaler
-	err := parallel.RunFirstErr(
-		func() error {
-			var err error
-			deployments, err = config.K8s.ListDeploymentsWithLabelKeys("apiName")
-			return err
-		},
-		func() error {
-			var err error
-			hpas, err = config.K8s.ListHPAsWithLabelKeys("apiName")
-			return err
-		},
-	)
-	if err != nil {
-		return err
-	}
-
-	hpaMap := make(map[string]*kautoscaling.HorizontalPodAutoscaler, len(hpas))
-	for _, hpa := range hpas {
-		hpaMap[hpa.Name] = &hpa
-	}
-
-	var allPods []kcore.Pod
-	var errs []error
-
-	for _, deployment := range deployments {
-		if hpaMap[deployment.Name] != nil {
-			continue // since the HPA is deleted every time the deployment is updated
-		}
-
-		if allPods == nil {
-			var err error
-			allPods, err = config.K8s.ListPodsWithLabelKeys("apiName")
-			if err != nil {
-				return err
-			}
-		}
-
-		replicaCounts := getReplicaCounts(&deployment, allPods)
-		if deployment.Spec.Replicas == nil || replicaCounts.Updated.Ready < *deployment.Spec.Replicas {
-			continue // not yet up-to-date
-		}
-
-		for _, condition := range deployment.Status.Conditions {
-			if condition.Type == kapps.DeploymentProgressing &&
-				condition.Status == kcore.ConditionTrue &&
-				!condition.LastUpdateTime.IsZero() &&
-				time.Now().After(condition.LastUpdateTime.Add(35*time.Second)) { // the metrics poll interval is 30 seconds, so 35 should be safe
-
-				spec, err := hpaSpec(&deployment)
-				if err != nil {
-					errs = append(errs, err)
-					continue
-				}
-
-				if _, err = config.K8s.CreateHPA(spec); err != nil {
-					errs = append(errs, err)
-					continue
-				}
-			}
-		}
-	}
-
-	if errors.HasError(errs) {
-		return errors.FirstError(errs...)
-	}
-	return nil
+type instanceInfo struct {
+	InstanceType string  `json:"instance_type" yaml:"instance_type"`
+	IsSpot       bool    `json:"is_spot" yaml:"is_spot"`
+	Price        float64 `json:"price" yaml:"price"`
+	Count        int32   `json:"count" yaml:"count"`
 }
 
 func operatorTelemetry() error {
@@ -131,7 +64,7 @@ func operatorTelemetry() error {
 		return err
 	}
 
-	instanceTypeCounts := make(map[string]int)
+	instanceInfos := make(map[string]*instanceInfo)
 	var totalInstances int
 
 	for _, node := range nodes {
@@ -144,13 +77,45 @@ func operatorTelemetry() error {
 			instanceType = "unknown"
 		}
 
-		instanceTypeCounts[instanceType]++
+		isSpot := false
+		if strings.Contains(strings.ToLower(node.Labels["lifecycle"]), "spot") {
+			isSpot = true
+		}
+
 		totalInstances++
+
+		instanceInfosKey := instanceType + "_ondemand"
+		if isSpot {
+			instanceInfosKey = instanceType + "_spot"
+		}
+
+		if info, ok := instanceInfos[instanceInfosKey]; ok {
+			info.Count++
+			continue
+		}
+
+		price := aws.InstanceMetadatas[*config.Cluster.Region][instanceType].Price
+		if isSpot {
+			spotPrice, err := config.AWS.SpotInstancePrice(*config.Cluster.Region, instanceType)
+			if err == nil && spotPrice != 0 {
+				price = spotPrice
+			}
+		}
+
+		info := instanceInfo{
+			InstanceType: instanceType,
+			IsSpot:       isSpot,
+			Price:        price,
+			Count:        1,
+		}
+
+		instanceInfos[instanceInfosKey] = &info
 	}
 
 	properties := map[string]interface{}{
-		"instanceTypes": instanceTypeCounts,
+		"region":        *config.Cluster.Region,
 		"instanceCount": totalInstances,
+		"instances":     instanceInfos,
 	}
 
 	telemetry.Event("operator.cron", properties)
